@@ -9,7 +9,7 @@ AlignAfterOpenBracket: AlwaysBreak
 AlignConsecutiveMacros:
   Enabled: true
 AllowAllArgumentsOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortBlocksOnASingleLine: Always
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortEnumsOnASingleLine: true
@@ -22,8 +22,7 @@ BinPackParameters: OnePerLine
 BreakAfterReturnType: All
 BreakStringLiterals: false
 
-AttributeMacros:
-  [
+AttributeMacros: [
     COMPILER_UNUSED,
     COMPILER_NORETURN,
     COMPILER_COLD,
@@ -31,18 +30,19 @@ AttributeMacros:
     COMPILER_FLATTEN,
     COMPILER_RETURNS_NONNULL,
     COMPILER_WARN_UNUSED_RESULT,
-    COMPILER_OPTIMIZE,
+    COMPILER_FALLTHROUGH
     COMPILER_MALLOC,
     COMPILER_FORMAT,
     COMPILER_NONNULL,
     COMPILER_CONST,
     COMPILER_PURE,
+    STATIC_ASSERT,
   ]
 ForEachMacros: [
     ITERATE_ONCE, #
     FOR_ALL_PORTS,
     ITERATE_LIST,
     CONSUME_LIST,
-    CONSUME_FOCUS,
+    CONSUME_MULTIFOCUS,
   ]
 StatementMacros: [PRINTER]

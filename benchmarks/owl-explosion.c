@@ -1,6 +1,7 @@
-#define BENCHMARKS
-
+#define OPTISCOPE_TESTS_NO_MAIN
 #include "../tests.c"
+
+#include <stdint.h>
 
 static struct lambda_term *
 owl_combinator(void) {
@@ -22,11 +23,11 @@ owl_explosion(const uint64_t depth) {
     return result;
 }
 
+#define BENCHMARK_TERM applicator(owl_explosion(5000), owl_combinator())
+
 int
 main(void) {
-    open_pools();
-    struct lambda_term *term =
-        applicator(owl_explosion(1000), owl_combinator());
-    algorithm(NULL, term);
-    close_pools();
+    optiscope_open_pools();
+    optiscope_algorithm(NULL, BENCHMARK_TERM);
+    optiscope_close_pools();
 }

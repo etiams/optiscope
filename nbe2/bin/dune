@@ -1,9 +1,0 @@
-(executable
- (public_name nbe2)
- (name main)
- (libraries nbe2))
-
-(env
- (release
-  (ocamlopt_flags
-   (:standard -O3))))

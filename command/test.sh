@@ -13,6 +13,9 @@ if [ "$CC" = "gcc" ]; then
     options="$options $gcc_suggest_options"
 fi
 
-$CC tests.c -o tests $options
+# Detect potential fallback linked list bugs.
+options="$options -DOPTISCOPE_MULTIFOCUS_COUNT=1000"
+
+$CC tests.c optiscope.c -o tests $options
 ./tests
 rm tests
