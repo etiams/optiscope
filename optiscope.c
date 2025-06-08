@@ -2144,7 +2144,7 @@ beta(
     connect_ports(&lhs.ports[1], targets[1]);
     connect_ports(&rhs.ports[1], targets[3]);
 
-    const struct node binder = follow_port(&g.ports[1]);
+    const struct node binder = node_of_port(targets[3]);
     if (SYMBOL_ERASER == binder.ports[-1]) {
         // There is a chance that the argument is fully disconnected from the
         // root; if so, we must garbage-collect it.
