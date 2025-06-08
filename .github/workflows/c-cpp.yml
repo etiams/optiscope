@@ -25,6 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Reserve huge pages
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo sysctl vm.nr_hugepages=64
+
       - name: Run the tests
         run: ./command/test.sh
 
@@ -54,6 +58,9 @@ jobs:
 
       - name: Install Hyperfine
         run: cargo install hyperfine
+
+      - name: Reserve huge pages
+        run: sudo sysctl vm.nr_hugepages=4096
 
       - name: Run the benchmarks
         run: ./command/bench.sh
