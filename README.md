@@ -330,8 +330,8 @@ Description: Evaluates an application sequence of 5000 + 1 Owl combinators `(λa
 
 ```
 Benchmark 1: ./owl-explosion
-  Time (mean ± σ):      4.806 s ±  0.009 s    [User: 4.617 s, System: 0.189 s]
-  Range (min … max):    4.794 s …  4.814 s    5 runs
+  Time (mean ± σ):      3.497 s ±  0.016 s    [User: 3.316 s, System: 0.180 s]
+  Range (min … max):    3.486 s …  3.524 s    5 runs
 ```
 
 <details>
