@@ -1992,7 +1992,7 @@ debug_interaction(
 
 #else
 
-#define debug_interaction(caller, graph, f, g) ((void)0)
+#define debug_interaction(caller, graph, f, g) ((void)(graph))
 
 #endif // OPTISCOPE_ENABLE_TRACING
 
@@ -2012,12 +2012,7 @@ annihilate(
     // clang-format on
     XASSERT(f.ports), XASSERT(g.ports);
     assert_annihilation(f, g);
-
-#ifdef OPTISCOPE_ENABLE_TRACING
     debug_interaction(__func__, graph, f, g);
-#else
-    (void)graph;
-#endif
 
 #ifdef OPTISCOPE_ENABLE_STATS
     graph->nannihilations++;
@@ -2030,6 +2025,8 @@ annihilate(
         // Respective ports must have the same semantic meaning.
         connect_ports(DECODE_ADDRESS(f.ports[i]), DECODE_ADDRESS(g.ports[i]));
     }
+
+    free_node(f), free_node(g);
 }
 
 TYPE_CHECK_RULE(annihilate);
@@ -2039,6 +2036,11 @@ static void
 commute(struct context *const restrict graph, struct node f, struct node g) {
     XASSERT(f.ports), XASSERT(g.ports);
     assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
 
 #ifndef NDEBUG
     {
@@ -2066,12 +2068,6 @@ commute(struct context *const restrict graph, struct node f, struct node g) {
         const uint64_t k = i;
         i = j, j = k;
     }
-
-    debug_interaction(__func__, graph, f, g);
-
-#ifdef OPTISCOPE_ENABLE_STATS
-    graph->ncommutations++;
-#endif
 
     const bool update_symbol = (SYMBOL_LAMBDA == g.ports[-1] && i >= 0) ||
                                (IS_DELIMITER(g.ports[-1]) && i >= j);
@@ -2110,9 +2106,39 @@ commute(struct context *const restrict graph, struct node f, struct node g) {
                 &f_updates[i].ports[j + 1], &g_updates[j].ports[m - i]);
         }
     }
+
+    free_node(f), free_node(g);
 }
 
 TYPE_CHECK_RULE(commute);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_delimiters(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    if (symbol_index(f.ports[-1]) > symbol_index(g.ports[-1])) {
+        f.ports[-1] = bump_index(f.ports[-1]);
+    } else {
+        g.ports[-1] = bump_index(g.ports[-1]);
+    }
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+
+    connect_ports(&f.ports[1], &g.ports[1]);
+}
+
+TYPE_CHECK_RULE(commute_delimiters);
 
 COMPILER_NONNULL(1) COMPILER_HOT //
 static void
@@ -2132,24 +2158,26 @@ beta(
     const struct node rhs = alloc_node(graph, SYMBOL_DELIMITER(UINT64_C(0)));
 
     // clang-format off
-    uint64_t *const targets[] = {
+    uint64_t *const target_ports[] = {
         DECODE_ADDRESS(f.ports[1]), DECODE_ADDRESS(g.ports[2]),
         DECODE_ADDRESS(f.ports[2]), DECODE_ADDRESS(g.ports[1]),
     };
     // clang-format on
 
-    connect_ports(&lhs.ports[0], targets[0]);
-    connect_ports(&rhs.ports[0], targets[2]);
+    connect_ports(&lhs.ports[0], target_ports[0]);
+    connect_ports(&rhs.ports[0], target_ports[2]);
 
-    connect_ports(&lhs.ports[1], targets[1]);
-    connect_ports(&rhs.ports[1], targets[3]);
+    connect_ports(&lhs.ports[1], target_ports[1]);
+    connect_ports(&rhs.ports[1], target_ports[3]);
 
-    const struct node binder = node_of_port(targets[3]);
+    const struct node binder = node_of_port(target_ports[3]);
     if (SYMBOL_ERASER == binder.ports[-1]) {
         // There is a chance that the argument is fully disconnected from the
         // root; if so, we must garbage-collect it.
         collect_garbage(graph, DECODE_ADDRESS(binder.ports[0]));
     }
+
+    free_node(f), free_node(g);
 }
 
 TYPE_CHECK_RULE(beta);
@@ -2168,12 +2196,13 @@ do_unary_call(
     graph->nunary_calls++;
 #endif
 
-    const struct node cell = alloc_node(graph, SYMBOL_CELL);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-    cell.ports[1] = (UNARY_FUNCTION_OF_U64(f.ports[2]))(g.ports[1]);
+    g.ports[1] = (UNARY_FUNCTION_OF_U64(f.ports[2]))(g.ports[1]);
 #pragma GCC diagnostic pop
-    connect_ports(&cell.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+
+    free_node(f);
 }
 
 TYPE_CHECK_RULE(do_unary_call);
@@ -2197,6 +2226,8 @@ do_binary_call(
     aux.ports[2] = f.ports[3];
     aux.ports[3] = g.ports[1];
     connect_ports(&aux.ports[0], DECODE_ADDRESS(f.ports[2]));
+
+    free_node(f), free_node(g);
 }
 
 TYPE_CHECK_RULE(do_binary_call);
@@ -2215,13 +2246,13 @@ do_binary_call_aux(
     graph->nbinary_calls_aux++;
 #endif
 
-    const struct node cell = alloc_node(graph, SYMBOL_CELL);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-    cell.ports[1] =
-        (BINARY_FUNCTION_OF_U64(f.ports[2]))(f.ports[3], g.ports[1]);
+    g.ports[1] = (BINARY_FUNCTION_OF_U64(f.ports[2]))(f.ports[3], g.ports[1]);
 #pragma GCC diagnostic pop
-    connect_ports(&cell.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+
+    free_node(f);
 }
 
 TYPE_CHECK_RULE(do_binary_call_aux);
@@ -2268,6 +2299,8 @@ do_if_then_else(
     } else {
         connect_branch(graph, f, if_else, if_then);
     }
+
+    free_node(f), free_node(g);
 }
 
 TYPE_CHECK_RULE(do_if_then_else);
@@ -2294,19 +2327,15 @@ do_fix(
     const struct node body_dup = alloc_node(graph, SYMBOL_DUPLICATOR(0));
     const struct node binder_dup = alloc_node(graph, SYMBOL_DUPLICATOR(0));
 
-    const struct node fix = alloc_node(graph, SYMBOL_FIX);
-    const struct node lambda = alloc_node(graph, SYMBOL_LAMBDA);
-
-    connect_ports(&lhs_delim.ports[1], &body_dup.ports[1]);
-    connect_ports(&rhs_delim.ports[1], &binder_dup.ports[1]);
-    connect_ports(&fix.ports[0], &lambda.ports[0]);
-    connect_ports(&fix.ports[1], &rhs_delim.ports[0]);
-    connect_ports(&lambda.ports[1], &binder_dup.ports[2]);
-    connect_ports(&lambda.ports[2], &body_dup.ports[2]);
-
     connect_ports(&lhs_delim.ports[0], DECODE_ADDRESS(f.ports[1]));
     connect_ports(&body_dup.ports[0], DECODE_ADDRESS(g.ports[2]));
     connect_ports(&binder_dup.ports[0], DECODE_ADDRESS(g.ports[1]));
+
+    connect_ports(&lhs_delim.ports[1], &body_dup.ports[1]);
+    connect_ports(&rhs_delim.ports[1], &binder_dup.ports[1]);
+    connect_ports(&f.ports[1], &rhs_delim.ports[0]);
+    connect_ports(&g.ports[1], &binder_dup.ports[2]);
+    connect_ports(&g.ports[2], &body_dup.ports[2]);
 }
 
 TYPE_CHECK_RULE(do_fix);
@@ -2328,13 +2357,11 @@ interact(
 
     if (PHASE_GARBAGE == DECODE_PHASE_METADATA(f.ports[0])) {
         // This active node was previously marked as garbage.
-        goto cleanup;
+        free_node(f), free_node(g);
+        return;
     }
 
     rule(graph, f, g);
-
-cleanup:
-    free_node(f), free_node(g);
 }
 
 // The read-back phases
@@ -3022,6 +3049,7 @@ of_lambda_term(
             break;                                                             \
         delimiter:                                                             \
             if (fsym == gsym) ANNIHILATE(f, g);                                \
+            else if (IS_DELIMITER(gsym)) COMMUTE_DELIMITERS(f, g);             \
             else if (SYMBOL_LAMBDA == gsym) COMMUTE(f, g);                     \
             else COMMUTE(g, f); /* delimiters must be the second */            \
             break;                                                             \
@@ -3038,17 +3066,19 @@ fire_rule(
     XASSERT(f.ports), XASSERT(g.ports);
     assert(is_interaction(f, g));
 
-#define BETA(f, g)            beta(graph, f, g)
-#define UNARY_CALL(f, g)      do_unary_call(graph, f, g)
-#define BINARY_CALL(f, g)     do_binary_call(graph, f, g)
-#define BINARY_CALL_AUX(f, g) do_binary_call_aux(graph, f, g)
-#define IF_THEN_ELSE(f, g)    do_if_then_else(graph, f, g)
-#define FIX(f, g)             do_fix(graph, f, g)
-#define ANNIHILATE(f, g)      annihilate(graph, f, g)
-#define COMMUTE(f, g)         commute(graph, f, g)
+#define BETA(f, g)               beta(graph, f, g)
+#define UNARY_CALL(f, g)         do_unary_call(graph, f, g)
+#define BINARY_CALL(f, g)        do_binary_call(graph, f, g)
+#define BINARY_CALL_AUX(f, g)    do_binary_call_aux(graph, f, g)
+#define IF_THEN_ELSE(f, g)       do_if_then_else(graph, f, g)
+#define FIX(f, g)                do_fix(graph, f, g)
+#define ANNIHILATE(f, g)         annihilate(graph, f, g)
+#define COMMUTE(f, g)            commute(graph, f, g)
+#define COMMUTE_DELIMITERS(f, g) commute_delimiters(graph, f, g)
 
     DISPATCH_ACTIVE_PAIR(f, g);
 
+#undef COMMUTE_DELIMITERS
 #undef COMMUTE
 #undef ANNIHILATE
 #undef FIX
@@ -3057,8 +3087,6 @@ fire_rule(
 #undef BINARY_CALL
 #undef UNARY_CALL
 #undef BETA
-
-    free_node(f), free_node(g);
 }
 
 COMPILER_NONNULL(1) COMPILER_HOT //
@@ -3079,9 +3107,11 @@ register_active_pair(
 #define FIX(f, g)             focus_on(graph->fixpoints, f)
 #define ANNIHILATE(f, g)      focus_on(graph->annihilations, f)
 #define COMMUTE(f, g)         focus_on(graph->commutations, f)
+#define COMMUTE_DELIMITERS    COMMUTE
 
     DISPATCH_ACTIVE_PAIR(f, g);
 
+#undef COMMUTE_DELIMITERS
 #undef COMMUTE
 #undef ANNIHILATE
 #undef FIX
