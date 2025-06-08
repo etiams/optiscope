@@ -13,7 +13,7 @@ generate_list(const uint64_t n) {
 
 #define BENCHMARK_TERM                                                         \
     applicator(                                                                \
-        scott_sum_list(), applicator(scott_quicksort(), generate_list(70)))
+        scott_sum_list(), applicator(scott_quicksort(), generate_list(100)))
 
 int
 main(void) {

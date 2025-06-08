@@ -13,7 +13,7 @@ generate_list(const uint64_t n) {
 
 #define BENCHMARK_TERM                                                         \
     applicator(                                                                \
-        church_sum_list(), applicator(church_reverse(), generate_list(3000)))
+        church_sum_list(), applicator(church_reverse(), generate_list(5000)))
 
 int
 main(void) {

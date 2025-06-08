@@ -205,8 +205,8 @@ Description: Recursively computes the 30th Fibonacci number using the built-in f
 
 ```
 Benchmark 1: ./fibonacci-of-30
-  Time (mean ± σ):      7.215 s ±  0.022 s    [User: 7.038 s, System: 0.176 s]
-  Range (min … max):    7.184 s …  7.245 s    5 runs
+  Time (mean ± σ):      6.137 s ±  0.042 s    [User: 5.972 s, System: 0.165 s]
+  Range (min … max):    6.098 s …  6.198 s    5 runs
 ```
 
 <details>
@@ -226,25 +226,25 @@ Total interactions: 151285047
 
 ### [Church lists](benchmarks/church-list-reverse-and-sum.c)
 
-Description: Reverses the Church-encoded list of 3000 cells & then sums all the cells up.
+Description: Reverses the Church-encoded list of 5000 cells & then sums all the cells up.
 
 ```
 Benchmark 1: ./church-list-reverse-and-sum
-  Time (mean ± σ):      1.650 s ±  0.006 s    [User: 1.624 s, System: 0.026 s]
-  Range (min … max):    1.644 s …  1.659 s    5 runs
+  Time (mean ± σ):      4.776 s ±  0.012 s    [User: 4.713 s, System: 0.063 s]
+  Range (min … max):    4.761 s …  4.794 s    5 runs
 ```
 
 <details>
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 9117010
-Commutation interactions: 99282062
-Beta interactions: 30006
-Native function calls: 6000
+Annihilation interactions: 25195010
+Commutation interactions: 275470062
+Beta interactions: 50006
+Native function calls: 10000
 If-then-elses: 0
 Fixpoints: 0
-Total interactions: 108435078
+Total interactions: 300725078
 ```
 
 </details>
@@ -255,8 +255,8 @@ Description: Performes an insertion sort on a Scott-encoded list of 150 cells, t
 
 ```
 Benchmark 1: ./scott-insertion-sort
-  Time (mean ± σ):      9.163 s ±  0.033 s    [User: 8.967 s, System: 0.195 s]
-  Range (min … max):    9.122 s …  9.207 s    5 runs
+  Time (mean ± σ):      7.101 s ±  0.019 s    [User: 6.903 s, System: 0.197 s]
+  Range (min … max):    7.070 s …  7.119 s    5 runs
 ```
 
 <details>
@@ -276,25 +276,25 @@ Total interactions: 515122709
 
 ### [Scott list quicksort](benchmarks/scott-quicksort.c)
 
-Description: Performes an (inefficient) quicksort on a Scott-encoded list of 70 cells, then sums all the cells up.
+Description: Performes an (inefficient) quicksort on a Scott-encoded list of 100 cells, then sums all the cells up.
 
 ```
 Benchmark 1: ./scott-quicksort
-  Time (mean ± σ):      5.799 s ±  0.014 s    [User: 5.736 s, System: 0.063 s]
-  Range (min … max):    5.779 s …  5.813 s    5 runs
+  Time (mean ± σ):     27.750 s ±  0.095 s    [User: 27.525 s, System: 0.224 s]
+  Range (min … max):   27.651 s … 27.866 s    5 runs
 ```
 
 <details>
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 30288516
-Commutation interactions: 315498221
-Beta interactions: 30747
-Native function calls: 9800
-If-then-elses: 4830
-Fixpoints: 286
-Total interactions: 345832400
+Annihilation interactions: 110264556
+Commutation interactions: 1194740481
+Beta interactions: 61917
+Native function calls: 20000
+If-then-elses: 9900
+Fixpoints: 406
+Total interactions: 1305097260
 ```
 
 </details>
@@ -305,8 +305,8 @@ Description: Multiplies by 2 all the cells in a Scott-encoded binary tree of siz
 
 ```
 Benchmark 1: ./scott-tree-map-and-sum
-  Time (mean ± σ):      1.113 s ±  0.003 s    [User: 1.080 s, System: 0.033 s]
-  Range (min … max):    1.111 s …  1.118 s    5 runs
+  Time (mean ± σ):     769.2 ms ±   4.2 ms    [User: 733.7 ms, System: 35.2 ms]
+  Range (min … max):   764.1 ms … 775.5 ms    5 runs
 ```
 
 <details>

@@ -1845,7 +1845,7 @@ collect_garbage(
     }
 }
 
-// Interaction rules
+// The core interaction rules
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 COMPILER_PURE COMPILER_WARN_UNUSED_RESULT //
@@ -2114,34 +2114,6 @@ TYPE_CHECK_RULE(commute);
 
 COMPILER_NONNULL(1) COMPILER_HOT //
 static void
-commute_delimiters(
-    // clang-format off
-    struct context *const restrict graph, const struct node f, const struct node g) {
-    // clang-format on
-    XASSERT(f.ports), XASSERT(g.ports);
-    assert_commutation(f, g);
-    debug_interaction(__func__, graph, f, g);
-
-#ifdef OPTISCOPE_ENABLE_STATS
-    graph->ncommutations++;
-#endif
-
-    if (symbol_index(f.ports[-1]) > symbol_index(g.ports[-1])) {
-        f.ports[-1] = bump_index(f.ports[-1]);
-    } else {
-        g.ports[-1] = bump_index(g.ports[-1]);
-    }
-
-    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
-    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
-
-    connect_ports(&f.ports[1], &g.ports[1]);
-}
-
-TYPE_CHECK_RULE(commute_delimiters);
-
-COMPILER_NONNULL(1) COMPILER_HOT //
-static void
 beta(
     // clang-format off
     struct context *const restrict graph, const struct node f, const struct node g) {
@@ -2340,8 +2312,6 @@ do_fix(
 
 TYPE_CHECK_RULE(do_fix);
 
-#undef TYPE_CHECK_RULE
-
 COMPILER_NONNULL(1, 2) COMPILER_HOT //
 static void
 interact(
@@ -2363,6 +2333,343 @@ interact(
 
     rule(graph, f, g);
 }
+
+// Specialized delimiter commutation rules
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_appl_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    const struct node new_delim =
+        alloc_node(graph, SYMBOL_DELIMITER(symbol_index(g.ports[-1])));
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&new_delim.ports[0], DECODE_ADDRESS(f.ports[2]));
+
+    connect_ports(&f.ports[1], &g.ports[1]);
+    connect_ports(&f.ports[2], &new_delim.ports[1]);
+}
+
+TYPE_CHECK_RULE(commute_appl_delim);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_lambda_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    g.ports[-1] = bump_index(g.ports[-1]);
+
+    const struct node new_delim = alloc_node(graph, g.ports[-1]);
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[2]));
+    connect_ports(&new_delim.ports[0], DECODE_ADDRESS(f.ports[1]));
+
+    connect_ports(&f.ports[2], &g.ports[1]);
+    connect_ports(&f.ports[1], &new_delim.ports[1]);
+}
+
+TYPE_CHECK_RULE(commute_lambda_delim);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_delim_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    if (symbol_index(f.ports[-1]) > symbol_index(g.ports[-1])) {
+        f.ports[-1] = bump_index(f.ports[-1]);
+    } else {
+        g.ports[-1] = bump_index(g.ports[-1]);
+    }
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+
+    connect_ports(&f.ports[1], &g.ports[1]);
+}
+
+TYPE_CHECK_RULE(commute_delim_delim);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_cell_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+
+    free_node(g);
+}
+
+TYPE_CHECK_RULE(commute_cell_delim);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_ucall_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+
+    connect_ports(&f.ports[1], &g.ports[1]);
+}
+
+TYPE_CHECK_RULE(commute_ucall_delim);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_bcall_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    const struct node new_delim = alloc_node(graph, g.ports[-1]);
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&new_delim.ports[0], DECODE_ADDRESS(f.ports[2]));
+
+    connect_ports(&f.ports[1], &g.ports[1]);
+    connect_ports(&f.ports[2], &new_delim.ports[1]);
+}
+
+TYPE_CHECK_RULE(commute_bcall_delim);
+
+#define commute_bcall_aux_delim commute_ucall_delim
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_ite_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    const struct node new_delim = alloc_node(graph, g.ports[-1]);
+    const struct node new_delimx = alloc_node(graph, g.ports[-1]);
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&new_delim.ports[0], DECODE_ADDRESS(f.ports[2]));
+    connect_ports(&new_delimx.ports[0], DECODE_ADDRESS(f.ports[3]));
+
+    connect_ports(&f.ports[1], &g.ports[1]);
+    connect_ports(&f.ports[2], &new_delim.ports[1]);
+    connect_ports(&f.ports[3], &new_delimx.ports[1]);
+}
+
+TYPE_CHECK_RULE(commute_ite_delim);
+
+// Specialized duplicator commutation rules
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_appl_dup(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    const struct node new_appl = alloc_node(graph, SYMBOL_APPLICATOR);
+    const struct node new_dup = alloc_node(graph, g.ports[-1]);
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&new_appl.ports[0], DECODE_ADDRESS(g.ports[2]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&new_dup.ports[0], DECODE_ADDRESS(f.ports[2]));
+
+    connect_ports(&g.ports[1], &f.ports[1]);
+    connect_ports(&g.ports[2], &new_appl.ports[1]);
+    connect_ports(&new_dup.ports[1], &f.ports[2]);
+    connect_ports(&new_dup.ports[2], &new_appl.ports[2]);
+}
+
+TYPE_CHECK_RULE(commute_appl_dup);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_lambda_dup(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    g.ports[-1] = bump_index(g.ports[-1]);
+
+    const struct node new_lambda = alloc_node(graph, SYMBOL_LAMBDA);
+    const struct node new_dup = alloc_node(graph, g.ports[-1]);
+
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&new_dup.ports[0], DECODE_ADDRESS(f.ports[2]));
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&new_lambda.ports[0], DECODE_ADDRESS(g.ports[2]));
+
+    connect_ports(&g.ports[1], &f.ports[1]);
+    connect_ports(&g.ports[2], &new_lambda.ports[1]);
+    connect_ports(&new_dup.ports[1], &f.ports[2]);
+    connect_ports(&new_dup.ports[2], &new_lambda.ports[2]);
+}
+
+TYPE_CHECK_RULE(commute_lambda_dup);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_cell_dup(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    const struct node new_cell = alloc_node_from(graph, SYMBOL_CELL, &f);
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&new_cell.ports[0], DECODE_ADDRESS(g.ports[2]));
+
+    free_node(g);
+}
+
+TYPE_CHECK_RULE(commute_cell_dup);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_dup_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    if (symbol_index(f.ports[-1]) >= symbol_index(g.ports[-1])) {
+        f.ports[-1] = bump_index(f.ports[-1]);
+    }
+
+    const struct node new_delim = alloc_node(graph, g.ports[-1]);
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&new_delim.ports[0], DECODE_ADDRESS(f.ports[2]));
+
+    connect_ports(&f.ports[1], &g.ports[1]);
+    connect_ports(&f.ports[2], &new_delim.ports[1]);
+}
+
+TYPE_CHECK_RULE(commute_dup_delim);
+
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_dup_dup(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_commutation(f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->ncommutations++;
+#endif
+
+    const struct node new_dup = alloc_node(graph, f.ports[-1]);
+    const struct node new_dupx = alloc_node(graph, g.ports[-1]);
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+    connect_ports(&new_dup.ports[0], DECODE_ADDRESS(g.ports[2]));
+    connect_ports(&g.ports[0], DECODE_ADDRESS(f.ports[1]));
+    connect_ports(&new_dupx.ports[0], DECODE_ADDRESS(f.ports[2]));
+
+    connect_ports(&f.ports[1], &g.ports[1]);
+    connect_ports(&f.ports[2], &new_dupx.ports[1]);
+    connect_ports(&new_dup.ports[1], &g.ports[2]);
+    connect_ports(&new_dup.ports[2], &new_dupx.ports[2]);
+}
+
+TYPE_CHECK_RULE(commute_dup_dup);
+
+#undef TYPE_CHECK_RULE
 
 // The read-back phases
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -2998,40 +3305,77 @@ of_lambda_term(
         const uint64_t fsym = f.ports[-1], gsym = g.ports[-1];                 \
                                                                                \
         switch (fsym) {                                                        \
+        duplicator:                                                            \
+            if (fsym == gsym) ANNIHILATE(f, g);                                \
+            else if (SYMBOL_APPLICATOR == gsym) COMMUTE_APPL_DUP(g, f);        \
+            else if (SYMBOL_LAMBDA == gsym) COMMUTE_LAMBDA_DUP(g, f);          \
+            else if (SYMBOL_CELL == gsym) COMMUTE_CELL_DUP(g, f);              \
+            else if (IS_DELIMITER(gsym)) COMMUTE_DUP_DELIM(f, g);              \
+            else if (IS_DUPLICATOR(gsym)) COMMUTE_DUP_DUP(f, g);               \
+            else COMMUTE(f, g);                                                \
+            break;                                                             \
+        delimiter:                                                             \
+            if (fsym == gsym) ANNIHILATE(f, g);                                \
+            else if (SYMBOL_APPLICATOR == gsym) COMMUTE_APPL_DELIM(g, f);      \
+            else if (SYMBOL_LAMBDA == gsym) COMMUTE_LAMBDA_DELIM(g, f);        \
+            else if (SYMBOL_CELL == gsym) COMMUTE_CELL_DELIM(g, f);            \
+            else if (SYMBOL_UNARY_CALL == gsym) COMMUTE_UCALL_DELIM(g, f);     \
+            else if (SYMBOL_BINARY_CALL == gsym) COMMUTE_BCALL_DELIM(g, f);    \
+            else if (SYMBOL_BINARY_CALL_AUX == gsym)                           \
+                COMMUTE_BCALL_AUX_DELIM(g, f);                                 \
+            else if (SYMBOL_IF_THEN_ELSE == gsym) COMMUTE_ITE_DELIM(g, f);     \
+            else if (IS_DELIMITER(gsym)) COMMUTE_DELIM_DELIM(f, g);            \
+            else if (IS_DUPLICATOR(gsym)) COMMUTE_DUP_DELIM(g, f);             \
+            else COMMUTE(g, f); /* delimiters must be the second */            \
+            break;                                                             \
         case SYMBOL_APPLICATOR:                                                \
             if (SYMBOL_LAMBDA == gsym) BETA(f, g);                             \
+            else if (IS_DELIMITER(gsym)) COMMUTE_APPL_DELIM(f, g);             \
+            else if (IS_DUPLICATOR(gsym)) COMMUTE_APPL_DUP(f, g);              \
             else COMMUTE(f, g);                                                \
             break;                                                             \
         case SYMBOL_LAMBDA:                                                    \
-            switch (gsym) {                                                    \
-            case SYMBOL_APPLICATOR: BETA(g, f); break;                         \
-            case SYMBOL_FIX: FIX(g, f); break;                                 \
-            default: COMMUTE(g, f); /* lambdas must alwaies be the second */   \
-            }                                                                  \
+            if (SYMBOL_APPLICATOR == gsym) BETA(g, f);                         \
+            else if (SYMBOL_FIX == gsym) FIX(g, f);                            \
+            else if (IS_DELIMITER(gsym)) COMMUTE_LAMBDA_DELIM(f, g);           \
+            else if (IS_DUPLICATOR(gsym)) COMMUTE_LAMBDA_DUP(f, g);            \
+            else COMMUTE(g, f); /* lambdas must alwaies be the second */       \
+            break;                                                             \
+        case SYMBOL_ERASER:                                                    \
+            if (SYMBOL_ERASER == gsym) free_node(f), free_node(g);             \
+            else COMMUTE(f, g);                                                \
+            break;                                                             \
+        case SYMBOL_S:                                                         \
+            if (SYMBOL_S == gsym) ANNIHILATE(f, g);                            \
+            else COMMUTE(f, g);                                                \
             break;                                                             \
         case SYMBOL_CELL:                                                      \
-            switch (gsym) {                                                    \
-            case SYMBOL_UNARY_CALL: UNARY_CALL(g, f); break;                   \
-            case SYMBOL_BINARY_CALL: BINARY_CALL(g, f); break;                 \
-            case SYMBOL_BINARY_CALL_AUX: BINARY_CALL_AUX(g, f); break;         \
-            case SYMBOL_IF_THEN_ELSE: IF_THEN_ELSE(g, f); break;               \
-            default: COMMUTE(f, g);                                            \
-            }                                                                  \
+            if (SYMBOL_UNARY_CALL == gsym) UNARY_CALL(g, f);                   \
+            else if (SYMBOL_BINARY_CALL == gsym) BINARY_CALL(g, f);            \
+            else if (SYMBOL_BINARY_CALL_AUX == gsym) BINARY_CALL_AUX(g, f);    \
+            else if (SYMBOL_IF_THEN_ELSE == gsym) IF_THEN_ELSE(g, f);          \
+            else if (IS_DELIMITER(gsym)) COMMUTE_CELL_DELIM(f, g);             \
+            else if (IS_DUPLICATOR(gsym)) COMMUTE_CELL_DUP(f, g);              \
+            else COMMUTE(f, g);                                                \
             break;                                                             \
         case SYMBOL_UNARY_CALL:                                                \
             if (SYMBOL_CELL == gsym) UNARY_CALL(f, g);                         \
+            else if (IS_DELIMITER(gsym)) COMMUTE_UCALL_DELIM(f, g);            \
             else COMMUTE(f, g);                                                \
             break;                                                             \
         case SYMBOL_BINARY_CALL:                                               \
             if (SYMBOL_CELL == gsym) BINARY_CALL(f, g);                        \
+            else if (IS_DELIMITER(gsym)) COMMUTE_BCALL_DELIM(f, g);            \
             else COMMUTE(f, g);                                                \
             break;                                                             \
         case SYMBOL_BINARY_CALL_AUX:                                           \
             if (SYMBOL_CELL == gsym) BINARY_CALL_AUX(f, g);                    \
+            else if (IS_DELIMITER(gsym)) COMMUTE_BCALL_AUX_DELIM(f, g);        \
             else COMMUTE(f, g);                                                \
             break;                                                             \
         case SYMBOL_IF_THEN_ELSE:                                              \
             if (SYMBOL_CELL == gsym) IF_THEN_ELSE(f, g);                       \
+            else if (IS_DELIMITER(gsym)) COMMUTE_ITE_DELIM(f, g);              \
             else COMMUTE(f, g);                                                \
             break;                                                             \
         case SYMBOL_FIX:                                                       \
@@ -3042,17 +3386,6 @@ of_lambda_term(
             if (fsym <= MAX_DUPLICATOR_INDEX) goto duplicator;                 \
             else if (fsym <= MAX_DELIMITER_INDEX) goto delimiter;              \
             else COMPILER_UNREACHABLE();                                       \
-        case SYMBOL_S:                                                         \
-        duplicator:                                                            \
-            if (fsym == gsym) ANNIHILATE(f, g);                                \
-            else COMMUTE(f, g);                                                \
-            break;                                                             \
-        delimiter:                                                             \
-            if (fsym == gsym) ANNIHILATE(f, g);                                \
-            else if (IS_DELIMITER(gsym)) COMMUTE_DELIMITERS(f, g);             \
-            else if (SYMBOL_LAMBDA == gsym) COMMUTE(f, g);                     \
-            else COMMUTE(g, f); /* delimiters must be the second */            \
-            break;                                                             \
         }                                                                      \
     } while (false)
 
@@ -3066,19 +3399,43 @@ fire_rule(
     XASSERT(f.ports), XASSERT(g.ports);
     assert(is_interaction(f, g));
 
-#define BETA(f, g)               beta(graph, f, g)
-#define UNARY_CALL(f, g)         do_unary_call(graph, f, g)
-#define BINARY_CALL(f, g)        do_binary_call(graph, f, g)
-#define BINARY_CALL_AUX(f, g)    do_binary_call_aux(graph, f, g)
-#define IF_THEN_ELSE(f, g)       do_if_then_else(graph, f, g)
-#define FIX(f, g)                do_fix(graph, f, g)
-#define ANNIHILATE(f, g)         annihilate(graph, f, g)
-#define COMMUTE(f, g)            commute(graph, f, g)
-#define COMMUTE_DELIMITERS(f, g) commute_delimiters(graph, f, g)
+#define BETA(f, g)                    beta(graph, f, g)
+#define UNARY_CALL(f, g)              do_unary_call(graph, f, g)
+#define BINARY_CALL(f, g)             do_binary_call(graph, f, g)
+#define BINARY_CALL_AUX(f, g)         do_binary_call_aux(graph, f, g)
+#define IF_THEN_ELSE(f, g)            do_if_then_else(graph, f, g)
+#define FIX(f, g)                     do_fix(graph, f, g)
+#define ANNIHILATE(f, g)              annihilate(graph, f, g)
+#define COMMUTE(f, g)                 commute(graph, f, g)
+#define COMMUTE_APPL_DELIM(f, g)      commute_appl_delim(graph, f, g)
+#define COMMUTE_LAMBDA_DELIM(f, g)    commute_lambda_delim(graph, f, g)
+#define COMMUTE_CELL_DELIM(f, g)      commute_cell_delim(graph, f, g)
+#define COMMUTE_UCALL_DELIM(f, g)     commute_ucall_delim(graph, f, g)
+#define COMMUTE_BCALL_DELIM(f, g)     commute_bcall_delim(graph, f, g)
+#define COMMUTE_BCALL_AUX_DELIM(f, g) commute_bcall_aux_delim(graph, f, g)
+#define COMMUTE_ITE_DELIM(f, g)       commute_ite_delim(graph, f, g)
+#define COMMUTE_DELIM_DELIM(f, g)     commute_delim_delim(graph, f, g)
+#define COMMUTE_APPL_DUP(f, g)        commute_appl_dup(graph, f, g)
+#define COMMUTE_LAMBDA_DUP(f, g)      commute_lambda_dup(graph, f, g)
+#define COMMUTE_CELL_DUP(f, g)        commute_cell_dup(graph, f, g)
+#define COMMUTE_DUP_DELIM(f, g)       commute_dup_delim(graph, f, g)
+#define COMMUTE_DUP_DUP(f, g)         commute_dup_dup(graph, f, g)
 
     DISPATCH_ACTIVE_PAIR(f, g);
 
-#undef COMMUTE_DELIMITERS
+#undef COMMUTE_DUP_DUP
+#undef COMMUTE_DUP_DELIM
+#undef COMMUTE_CELL_DUP
+#undef COMMUTE_LAMBDA_DUP
+#undef COMMUTE_APPL_DUP
+#undef COMMUTE_DELIM_DELIM
+#undef COMMUTE_ITE_DELIM
+#undef COMMUTE_BCALL_AUX_DELIM
+#undef COMMUTE_BCALL_DELIM
+#undef COMMUTE_UCALL_DELIM
+#undef COMMUTE_CELL_DELIM
+#undef COMMUTE_LAMBDA_DELIM
+#undef COMMUTE_APPL_DELIM
 #undef COMMUTE
 #undef ANNIHILATE
 #undef FIX
@@ -3099,19 +3456,47 @@ register_active_pair(
     XASSERT(f.ports), XASSERT(g.ports);
     assert(is_interaction(f, g));
 
-#define BETA(f, g)            focus_on(graph->betas, f)
-#define UNARY_CALL(f, g)      focus_on(graph->unary_calls, f)
-#define BINARY_CALL(f, g)     focus_on(graph->binary_calls, f)
-#define BINARY_CALL_AUX(f, g) focus_on(graph->binary_calls_aux, f)
-#define IF_THEN_ELSE(f, g)    focus_on(graph->if_then_elses, f)
-#define FIX(f, g)             focus_on(graph->fixpoints, f)
-#define ANNIHILATE(f, g)      focus_on(graph->annihilations, f)
-#define COMMUTE(f, g)         focus_on(graph->commutations, f)
-#define COMMUTE_DELIMITERS    COMMUTE
+#define BETA(f, g)              focus_on(graph->betas, f)
+#define UNARY_CALL(f, g)        focus_on(graph->unary_calls, f)
+#define BINARY_CALL(f, g)       focus_on(graph->binary_calls, f)
+#define BINARY_CALL_AUX(f, g)   focus_on(graph->binary_calls_aux, f)
+#define IF_THEN_ELSE(f, g)      focus_on(graph->if_then_elses, f)
+#define FIX(f, g)               focus_on(graph->fixpoints, f)
+#define ANNIHILATE(f, g)        focus_on(graph->annihilations, f)
+#define COMMUTE(f, g)           focus_on(graph->commutations, f)
+#define COMMUTE_APPL_DELIM      COMMUTE
+#define COMMUTE_CELL_DELIM      COMMUTE
+#define COMMUTE_UCALL_DELIM     COMMUTE
+#define COMMUTE_BCALL_DELIM     COMMUTE
+#define COMMUTE_BCALL_AUX_DELIM COMMUTE
+#define COMMUTE_ITE_DELIM       COMMUTE
+#define COMMUTE_DELIM_DELIM     COMMUTE
+#define COMMUTE_APPL_DUP        COMMUTE
+#define COMMUTE_CELL_DUP        COMMUTE
+#define COMMUTE_DUP_DELIM       COMMUTE
+#define COMMUTE_DUP_DUP         COMMUTE
+
+#define COMMUTE_LAMBDA_DELIM(f, g)                                             \
+    COMMUTE(g, f) // delimiters take precedence over lambdas
+#define COMMUTE_LAMBDA_DUP(f, g)                                               \
+    COMMUTE(g, f) // lambdas must alwaies be the second
 
     DISPATCH_ACTIVE_PAIR(f, g);
 
-#undef COMMUTE_DELIMITERS
+#undef COMMUTE_LAMBDA_DUP
+#undef COMMUTE_LAMBDA_DELIM
+
+#undef COMMUTE_DUP_DUP
+#undef COMMUTE_DUP_DELIM
+#undef COMMUTE_CELL_DUP
+#undef COMMUTE_APPL_DUP
+#undef COMMUTE_DELIM_DELIM
+#undef COMMUTE_ITE_DELIM
+#undef COMMUTE_BCALL_AUX_DELIM
+#undef COMMUTE_BCALL_DELIM
+#undef COMMUTE_UCALL_DELIM
+#undef COMMUTE_CELL_DELIM
+#undef COMMUTE_APPL_DELIM
 #undef COMMUTE
 #undef ANNIHILATE
 #undef FIX
