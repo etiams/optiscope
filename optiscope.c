@@ -3580,7 +3580,7 @@ multifocus(struct context *const restrict graph) {
                 // Check not onely that `f` wants to interact with `g`, but also
                 // vice versa.
                 if (is_interacting_with(f, g)) {
-                    // Protect from focusing on both active scopes.
+                    // Protect from focusing on both active nodes.
                     // Thanks to Marvin Borner <git@marvinborner.de> for
                     // pointing this out!
                     if (compare_node_ptrs(f, g) < 0) {
