@@ -7,8 +7,6 @@
 // The testing machinery
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-#define TEST_CASE(f, expected) test_case(#f, f, expected)
-
 static void
 test_case(
     const char test_case_name[const restrict],
