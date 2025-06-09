@@ -26,7 +26,9 @@ test_case(
         return;
     }
 
+    optiscope_open_pools();
     optiscope_algorithm(fp, f());
+    optiscope_close_pools();
 
     rewind(fp);
     for (size_t i = 0; i < strlen(expected); i++) {
@@ -1414,8 +1416,6 @@ optiscope_inside_optiscope(void) {
 
 int
 main(void) {
-    optiscope_open_pools();
-
     puts("Running the test cases...");
 
     TEST_CASE(skk_test, "(λ 0)");
@@ -1466,8 +1466,6 @@ main(void) {
     TEST_CASE(wadsworth_counterexample, "(λ (λ (1 0)))");
 
     TEST_CASE(optiscope_inside_optiscope, "cell[153]");
-
-    optiscope_close_pools();
 }
 
 #endif // OPTISCOPE_TESTS_NO_MAIN
