@@ -456,6 +456,10 @@ Well, in our benchmarks, we represent all data besides primitive integers as fun
 
 What conclusions should we draw from this? Have Haskell & OCaml so advanced in efficiency? Or does BOHM demonstrate superior performance on Church numerals onely? Should we invest our time in making optimality efficient, or is it better to start with a simple explicit substitution machine & then optimize it? I leave this question to the readers, as I have no definite answer.
 
+## Usage
+
+See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
+
 ## Implementation details
 
  - **Node layout.** We interpret each graph node as an array `a` of `uint64_t` values. At position `a[-1]`, we store the _node symbol_; at `a[0]`, we store the principal port; at positions from `a[1]` to `a[3]` (inclusively), we store the auxiliary ports; at positions starting from `a[4]`, we store additional data elements, such as function pointers or computed cell values. The number of auxiliary ports & additional data elements determines the total size of the array: for erasers, the size in bytes is `2 * sizeof(uint64_t)`, as they need one position for the symbol & another one for the principal port; for applicators & lambdas having two auxiliary ports, the size is `3 * sizeof(uint64_t)`; for unary function calls, the size is `4 * sizeof(uint64_t)`, as they have one symbol, two auxiliary ports, & one function pointer. Similar calculation can be done for all the other node types.
