@@ -460,6 +460,15 @@ What conclusions should we draw from this? Have Haskell & OCaml so advanced in e
 
 See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
 
+### Commands
+
+| Execution | Description |
+|-----------|-------------|
+| `./command/test.sh` | Run the test suite `tests.c`. |
+| `./command/bench.sh` | Run all the benchmarks in `benchmarks/`. |
+| `./command/graphviz-state.sh` | Visualize `target/state.dot` as `target/state.dot.svg`. |
+| `./command/graphvis-all.sh` | Visualize all the `.dot` files in `target/`. |
+
 ## Implementation details
 
  - **Node layout.** We interpret each graph node as an array `a` of `uint64_t` values. At position `a[-1]`, we store the _node symbol_; at `a[0]`, we store the principal port; at positions from `a[1]` to `a[3]` (inclusively), we store the auxiliary ports; at positions starting from `a[4]`, we store additional data elements, such as function pointers or computed cell values. The number of auxiliary ports & additional data elements determines the total size of the array: for erasers, the size in bytes is `2 * sizeof(uint64_t)`, as they need one position for the symbol & another one for the principal port; for applicators & lambdas having two auxiliary ports, the size is `3 * sizeof(uint64_t)`; for unary function calls, the size is `4 * sizeof(uint64_t)`, as they have one symbol, two auxiliary ports, & one function pointer. Similar calculation can be done for all the other node types.
@@ -486,13 +495,6 @@ See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) f
  - **Graphviz intergration.** Debugging interaction nets is a particularly painfull exercise. Isolated interactions make very little sense, yet, the cumulative effect is somehow analogous to conventional reduction. To simplifie the challenge a bit, we have integrated [Graphviz] (in debug mode onely) to display the whole graph between consecutive algorithmic phases, & also before each interaction, if requested. Alongside each node, our visualization also displays an ASCII table of port addresses, which has proven to be extremely helpfull in debugging various memory management issues in the past. (Previously, in addition to visualizing the graph itself, we used to have the option to display blue-colored "clusters" of nodes that originated from the same interaction (either commutation or Beta); however, it was viable onely for small graphs, & onely as long as computation did not goe too farre.)
 
 [Graphviz]: https://graphviz.org/
-
-## Commands
-
- - `./command/test.sh` -- run the test suite `tests.c`.
- - `./command/bench.sh` -- run all the benchmarks in `benchmarks/` (you can tune the parameters in the script).
- - `./command/graphviz-state.sh` -- visualize `target/state.dot` as `target/state.dot.svg`.
- - `./command/graphvis-all.sh` -- visualize all the `.dot` files in `target/`.
 
 ## Relevant research
 
