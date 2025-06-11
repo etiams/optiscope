@@ -197,11 +197,13 @@ Mathematically, our implementation follows the Lambdascope formalism [^lambdasco
 
 </details>
 
-On GNU/Linux, you need to reserve huge pages as follows: `sudo sysctl vm.nr_hugepages=4096`.
+To observe the performance characteristics of optimal reduction à la Lambdascope, we present a number of benchmarks that expose different computational patterns.
 
-### [Fibonacci of 30](benchmarks/fibonacci-of-30.c)
+On GNU/Linux, you need to reserve huge pages as follows: `sudo sysctl vm.nr_hugepages=6000`.
 
-Description: Recursively computes the 30th Fibonacci number using the built-in fixpoint operator & native cells.
+### [Fibonacci (native cells)](benchmarks/fibonacci-of-30.c)
+
+Description: Recursively computes the 30th Fibonacci number using native cells & the built-in fixpoint operator.
 
 ```
 Benchmark 1: ./fibonacci-of-30
@@ -220,6 +222,31 @@ Native function calls: 12948453
 If-then-elses: 4870845
 Fixpoints: 31
 Total interactions: 151285047
+```
+
+</details>
+
+### [Fibonacci (Church numerals)](benchmarks/church-fibonacci-of-20.c)
+
+Description: Recursively computes the 20th Fibonacci number using Church numerals & the standard Y combinator.
+
+```
+Benchmark 1: ./church-fibonacci-of-20
+  Time (mean ± σ):     37.079 s ±  0.331 s    [User: 36.767 s, System: 0.303 s]
+  Range (min … max):   36.524 s … 37.331 s    5 runs
+```
+
+<details>
+<summary>Interactions count</summary>
+
+```
+Annihilation interactions: 28557153
+Commutation interactions: 2192081466
+Beta interactions: 521847
+Native function calls: 0
+If-then-elses: 0
+Fixpoints: 0
+Total interactions: 2221160466
 ```
 
 </details>
