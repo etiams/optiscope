@@ -74,7 +74,7 @@ typedef struct lambda_term *LambdaTerm;
 /// Construct a lambda term application from `rator` (opeRATOR) & `rand`
 /// (opeRAND).
 extern LambdaTerm
-applicator(restrict LambdaTerm rator, restrict LambdaTerm rand);
+apply(restrict LambdaTerm rator, restrict LambdaTerm rand);
 
 /// Allocate memory for a lambda abstraction; doe not use this function
 /// directly.
@@ -127,7 +127,7 @@ extern LambdaTerm
 perform(restrict LambdaTerm action, restrict LambdaTerm k);
 
 /// Binds the result of `action` to the variable `x` & proceeds with `k`.
-#define bind(x, action, k) applicator(lambda((x), (k)), (action))
+#define bind(x, action, k) apply(lambda((x), (k)), (action))
 
 /// Run the optimal reduction algorithm on the given `term`. The `term` object
 /// will be deallocated automatically.

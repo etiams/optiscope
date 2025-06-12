@@ -66,11 +66,7 @@ s_combinator(void) {
     return lambda(
         x,
         lambda(
-            y,
-            lambda(
-                z,
-                applicator(
-                    applicator(var(x), var(z)), applicator(var(y), var(z))))));
+            y, lambda(z, apply(apply(var(x), var(z)), apply(var(y), var(z))))));
 }
 
 static struct lambda_term *
@@ -89,50 +85,47 @@ i_combinator(void) {
 
 static struct lambda_term *
 skk_test(void) {
-    return applicator(
-        applicator(s_combinator(), k_combinator()), k_combinator());
+    return apply(apply(s_combinator(), k_combinator()), k_combinator());
 }
 
 static struct lambda_term *
 sksk_test(void) {
-    return applicator(
-        applicator(applicator(s_combinator(), k_combinator()), s_combinator()),
+    return apply(
+        apply(apply(s_combinator(), k_combinator()), s_combinator()),
         k_combinator());
 }
 
 static struct lambda_term *
 ski_kis_test(void) {
-    return applicator(
-        applicator(applicator(s_combinator(), k_combinator()), i_combinator()),
-        applicator(applicator(k_combinator(), i_combinator()), s_combinator()));
+    return apply(
+        apply(apply(s_combinator(), k_combinator()), i_combinator()),
+        apply(apply(k_combinator(), i_combinator()), s_combinator()));
 }
 
 static struct lambda_term *
 sii_combinator(void) {
-    return applicator(
-        applicator(s_combinator(), i_combinator()), i_combinator());
+    return apply(apply(s_combinator(), i_combinator()), i_combinator());
 }
 
 static struct lambda_term *
 sii_test(void) {
-    return applicator(
-        sii_combinator(), applicator(i_combinator(), i_combinator()));
+    return apply(sii_combinator(), apply(i_combinator(), i_combinator()));
 }
 
 static struct lambda_term *
 iota_combinator_test(void) {
-    return applicator(
-        applicator(
+    return apply(
+        apply(
             s_combinator(),
-            applicator(
-                applicator(s_combinator(), i_combinator()),
-                applicator(k_combinator(), s_combinator()))),
-        applicator(k_combinator(), k_combinator()));
+            apply(
+                apply(s_combinator(), i_combinator()),
+                apply(k_combinator(), s_combinator()))),
+        apply(k_combinator(), k_combinator()));
 }
 
 static struct lambda_term *
 self_iota_combinator_test(void) {
-    return applicator(iota_combinator_test(), iota_combinator_test());
+    return apply(iota_combinator_test(), iota_combinator_test());
 }
 
 // The B, C, W combinators
@@ -143,8 +136,7 @@ b_combinator(void) {
     struct lambda_term *f, *g, *x;
 
     return lambda(
-        f,
-        lambda(g, lambda(x, applicator(var(f), applicator(var(g), var(x))))));
+        f, lambda(g, lambda(x, apply(var(f), apply(var(g), var(x))))));
 }
 
 static struct lambda_term *
@@ -152,22 +144,21 @@ c_combinator(void) {
     struct lambda_term *f, *g, *x;
 
     return lambda(
-        f,
-        lambda(g, lambda(x, applicator(applicator(var(f), var(x)), var(g)))));
+        f, lambda(g, lambda(x, apply(apply(var(f), var(x)), var(g)))));
 }
 
 static struct lambda_term *
 w_combinator(void) {
     struct lambda_term *f, *x;
 
-    return lambda(f, lambda(x, applicator(applicator(var(f), var(x)), var(x))));
+    return lambda(f, lambda(x, apply(apply(var(f), var(x)), var(x))));
 }
 
 static struct lambda_term *
 bcw_test(void) {
-    return applicator(
-        applicator(b_combinator(), applicator(b_combinator(), w_combinator())),
-        applicator(applicator(b_combinator(), b_combinator()), c_combinator()));
+    return apply(
+        apply(b_combinator(), apply(b_combinator(), w_combinator())),
+        apply(apply(b_combinator(), b_combinator()), c_combinator()));
 }
 
 // Unary arithmetic
@@ -187,8 +178,8 @@ unary_arithmetic(void) {
 
     return unary_call(
         halve,
-        applicator(
-            lambda(f, applicator(var(f), cell(4))),
+        apply(
+            lambda(f, apply(var(f), cell(4))),
             lambda(x, unary_call(cube, unary_call(square, var(x))))));
 }
 
@@ -213,12 +204,12 @@ static struct lambda_term *
 binary_arithmetic(void) {
     struct lambda_term *f, *x;
 
-    return applicator(
+    return apply(
         lambda(
             f,
             binary_call(
                 divide,
-                binary_call(subtract, applicator(var(f), cell(10)), cell(8)),
+                binary_call(subtract, apply(var(f), cell(10)), cell(8)),
                 cell(2))),
         lambda(
             x,
@@ -238,7 +229,7 @@ conditionals(void) {
     struct lambda_term *x;
 
     return if_then_else(
-        applicator(
+        apply(
             lambda(
                 x,
                 if_then_else(
@@ -258,20 +249,22 @@ static struct lambda_term *
 fix_fibonacci_function(void) {
     struct lambda_term *rec, *n;
 
-    // clang-format off
-    return lambda(rec, lambda(n,
-        if_then_else(
-            unary_call(is_zero, var(n)),
-            cell(0),
+    return lambda(
+        rec,
+        lambda(
+            n,
             if_then_else(
-                unary_call(is_one, var(n)),
-                cell(1),
-                binary_call(add,
-                    applicator(var(rec),
-                        binary_call(subtract, var(n), cell(1))),
-                    applicator(var(rec),
-                        binary_call(subtract, var(n), cell(2))))))));
-    // clang-format on
+                unary_call(is_zero, var(n)),
+                cell(0),
+                if_then_else(
+                    unary_call(is_one, var(n)),
+                    cell(1),
+                    binary_call(
+                        add,
+                        apply(var(rec), binary_call(subtract, var(n), cell(1))),
+                        apply(
+                            var(rec),
+                            binary_call(subtract, var(n), cell(2))))))));
 }
 
 static struct lambda_term *
@@ -281,7 +274,7 @@ fix_fibonacci_term(void) {
 
 static struct lambda_term *
 fix_fibonacci_test(void) {
-    return applicator(fix_fibonacci_term(), cell(10));
+    return apply(fix_fibonacci_term(), cell(10));
 }
 
 // Church booleans
@@ -306,22 +299,21 @@ church_not(void) {
     struct lambda_term *p, *a, *b;
 
     return lambda(
-        p,
-        lambda(a, lambda(b, applicator(applicator(var(p), var(b)), var(a)))));
+        p, lambda(a, lambda(b, apply(apply(var(p), var(b)), var(a)))));
 }
 
 static struct lambda_term *
 church_and(void) {
     struct lambda_term *p, *q;
 
-    return lambda(p, lambda(q, applicator(applicator(var(p), var(q)), var(p))));
+    return lambda(p, lambda(q, apply(apply(var(p), var(q)), var(p))));
 }
 
 static struct lambda_term *
 church_or(void) {
     struct lambda_term *p, *q;
 
-    return lambda(p, lambda(q, applicator(applicator(var(p), var(p)), var(q))));
+    return lambda(p, lambda(q, apply(apply(var(p), var(p)), var(q))));
 }
 
 static struct lambda_term *
@@ -332,13 +324,11 @@ church_xor(void) {
         p,
         lambda(
             q,
-            applicator(
-                applicator(
+            apply(
+                apply(
                     var(p),
-                    applicator(
-                        applicator(var(q), church_false()), church_true())),
-                applicator(
-                    applicator(var(q), church_true()), church_false()))));
+                    apply(apply(var(q), church_false()), church_true())),
+                apply(apply(var(q), church_true()), church_false()))));
 }
 
 static struct lambda_term *
@@ -346,23 +336,22 @@ church_if_then_else(void) {
     struct lambda_term *c, *t, *f;
 
     return lambda(
-        c,
-        lambda(t, lambda(f, applicator(applicator(var(c), var(t)), var(f)))));
+        c, lambda(t, lambda(f, apply(apply(var(c), var(t)), var(f)))));
 }
 
 #define CHURCH_IF_THEN_ELSE(c, t, f)                                           \
-    applicator(applicator(applicator(church_if_then_else(), c), t), f)
+    apply(apply(apply(church_if_then_else(), c), t), f)
 
 static struct lambda_term *
 boolean_test(void) {
     return CHURCH_IF_THEN_ELSE(
-        applicator(applicator(church_or(), church_true()), church_false()),
-        applicator(
-            applicator(
+        apply(apply(church_or(), church_true()), church_false()),
+        apply(
+            apply(
                 church_xor(),
-                applicator(
-                    applicator(church_and(), church_true()),
-                    applicator(church_not(), church_false()))),
+                apply(
+                    apply(church_and(), church_true()),
+                    apply(church_not(), church_false()))),
             church_false()),
         church_false());
 }
@@ -381,14 +370,14 @@ static struct lambda_term *
 church_one(void) {
     struct lambda_term *f, *x;
 
-    return lambda(f, lambda(x, applicator(var(f), var(x))));
+    return lambda(f, lambda(x, apply(var(f), var(x))));
 }
 
 static struct lambda_term *
 church_two(void) {
     struct lambda_term *f, *x;
 
-    return lambda(f, lambda(x, applicator(var(f), applicator(var(f), var(x)))));
+    return lambda(f, lambda(x, apply(var(f), apply(var(f), var(x)))));
 }
 
 static struct lambda_term *
@@ -396,11 +385,7 @@ church_three(void) {
     struct lambda_term *f, *x;
 
     return lambda(
-        f,
-        lambda(
-            x,
-            applicator(
-                var(f), applicator(var(f), applicator(var(f), var(x))))));
+        f, lambda(x, apply(var(f), apply(var(f), apply(var(f), var(x))))));
 }
 
 static struct lambda_term *
@@ -411,24 +396,22 @@ church_five(void) {
         f,
         lambda(
             x,
-            applicator(
+            apply(
                 var(f),
-                applicator(
+                apply(
                     var(f),
-                    applicator(
-                        var(f),
-                        applicator(var(f), applicator(var(f), var(x))))))));
+                    apply(var(f), apply(var(f), apply(var(f), var(x))))))));
 }
 
 // The originall showcase test from the Lambdascope paper.
 static struct lambda_term *
 church_two_two_test(void) {
-    return applicator(church_two(), church_two());
+    return apply(church_two(), church_two());
 }
 
 static struct lambda_term *
 church_two_two_two_test(void) {
-    return applicator(applicator(church_two(), church_two()), church_two());
+    return apply(apply(church_two(), church_two()), church_two());
 }
 
 static struct lambda_term *
@@ -443,9 +426,9 @@ church_add(void) {
                 f,
                 lambda(
                     x,
-                    applicator(
-                        applicator(var(m), var(f)),
-                        applicator(applicator(var(n), var(f)), var(x)))))));
+                    apply(
+                        apply(var(m), var(f)),
+                        apply(apply(var(n), var(f)), var(x)))))));
 }
 
 static struct lambda_term *
@@ -459,18 +442,15 @@ church_multiply(void) {
             lambda(
                 f,
                 lambda(
-                    x,
-                    applicator(
-                        applicator(var(m), applicator(var(n), var(f))),
-                        var(x))))));
+                    x, apply(apply(var(m), apply(var(n), var(f))), var(x))))));
 }
 
 static struct lambda_term *
 church_one_plus_two_times_five_test(void) {
-    return applicator(
-        applicator(
+    return apply(
+        apply(
             church_multiply(),
-            applicator(applicator(church_add(), church_one()), church_two())),
+            apply(apply(church_add(), church_one()), church_two())),
         church_five());
 }
 
@@ -484,16 +464,14 @@ church_predecessor(void) {
             f,
             lambda(
                 x,
-                applicator(
-                    applicator(
-                        applicator(
+                apply(
+                    apply(
+                        apply(
                             var(n),
                             lambda(
                                 g,
                                 lambda(
-                                    h,
-                                    applicator(
-                                        var(h), applicator(var(g), var(f)))))),
+                                    h, apply(var(h), apply(var(g), var(f)))))),
                         lambda(u, var(x))),
                     lambda(v, var(v))))));
 }
@@ -503,14 +481,12 @@ church_predecessor2x(void) {
     struct lambda_term *n;
 
     return lambda(
-        n,
-        applicator(
-            church_predecessor(), applicator(church_predecessor(), var(n))));
+        n, apply(church_predecessor(), apply(church_predecessor(), var(n))));
 }
 
 static struct lambda_term *
 church_five_predecessor2x(void) {
-    return applicator(church_predecessor2x(), church_five());
+    return apply(church_predecessor2x(), church_five());
 }
 
 // Iterative factorial
@@ -521,22 +497,21 @@ church_pair(void) {
     struct lambda_term *x, *y, *z;
 
     return lambda(
-        x,
-        lambda(y, lambda(z, applicator(applicator(var(z), var(x)), var(y)))));
+        x, lambda(y, lambda(z, apply(apply(var(z), var(x)), var(y)))));
 }
 
 static struct lambda_term *
 church_first(void) {
     struct lambda_term *p;
 
-    return lambda(p, applicator(var(p), church_true()));
+    return lambda(p, apply(var(p), church_true()));
 }
 
 static struct lambda_term *
 church_second(void) {
     struct lambda_term *p;
 
-    return lambda(p, applicator(var(p), church_false()));
+    return lambda(p, apply(var(p), church_false()));
 }
 
 static struct lambda_term *
@@ -545,15 +520,13 @@ factorial_step_term(void) {
 
     return lambda(
         p,
-        applicator(
-            applicator(
+        apply(
+            apply(
                 church_pair(),
-                applicator(
-                    applicator(
-                        church_multiply(), applicator(church_first(), var(p))),
-                    applicator(church_second(), var(p)))),
-            applicator(
-                church_predecessor(), applicator(church_second(), var(p)))));
+                apply(
+                    apply(church_multiply(), apply(church_first(), var(p))),
+                    apply(church_second(), var(p)))),
+            apply(church_predecessor(), apply(church_second(), var(p)))));
 }
 
 static struct lambda_term *
@@ -562,16 +535,16 @@ factorial_term(void) {
 
     return lambda(
         n,
-        applicator(
+        apply(
             church_first(),
-            applicator(
-                applicator(var(n), factorial_step_term()),
-                applicator(applicator(church_pair(), church_one()), var(n)))));
+            apply(
+                apply(var(n), factorial_step_term()),
+                apply(apply(church_pair(), church_one()), var(n)))));
 }
 
 static struct lambda_term *
 factorial_of_three_test(void) {
-    return applicator(factorial_term(), church_three());
+    return apply(factorial_term(), church_three());
 }
 
 // The Y combinator
@@ -583,9 +556,9 @@ y_combinator(void) {
 
     return lambda(
         f,
-        applicator(
-            lambda(x, applicator(var(f), applicator(var(x), var(x)))),
-            lambda(y, applicator(var(f), applicator(var(y), var(y))))));
+        apply(
+            lambda(x, apply(var(f), apply(var(x), var(x)))),
+            lambda(y, apply(var(f), apply(var(y), var(y))))));
 }
 
 static struct lambda_term *
@@ -593,9 +566,7 @@ church_is_zero(void) {
     struct lambda_term *n, *x;
 
     return lambda(
-        n,
-        applicator(
-            applicator(var(n), lambda(x, church_false())), church_true()));
+        n, apply(apply(var(n), lambda(x, church_false())), church_true()));
 }
 
 static struct lambda_term *
@@ -604,8 +575,7 @@ church_is_one(void) {
 
     // Assuming that `n` is positive.
     return lambda(
-        n,
-        applicator(church_is_zero(), applicator(church_predecessor(), var(n))));
+        n, apply(church_is_zero(), apply(church_predecessor(), var(n))));
 }
 
 static struct lambda_term *
@@ -617,53 +587,55 @@ y_factorial_function(void) {
         lambda(
             n,
             CHURCH_IF_THEN_ELSE(
-                applicator(church_is_zero(), var(n)),
+                apply(church_is_zero(), var(n)),
                 church_one(),
-                applicator(
-                    applicator(church_multiply(), var(n)),
-                    applicator(
-                        var(f), applicator(church_predecessor(), var(n)))))));
+                apply(
+                    apply(church_multiply(), var(n)),
+                    apply(var(f), apply(church_predecessor(), var(n)))))));
 }
 
 static struct lambda_term *
 y_factorial_term(void) {
-    return applicator(y_combinator(), y_factorial_function());
+    return apply(y_combinator(), y_factorial_function());
 }
 
 static struct lambda_term *
 y_factorial_test(void) {
-    return applicator(y_factorial_term(), church_three());
+    return apply(y_factorial_term(), church_three());
 }
 
 static struct lambda_term *
 y_fibonacci_function(void) {
     struct lambda_term *rec, *n;
 
-    // clang-format off
-    return lambda(rec, lambda(n,
-        CHURCH_IF_THEN_ELSE(
-            applicator(church_is_zero(), var(n)),
-            church_zero(),
+    return lambda(
+        rec,
+        lambda(
+            n,
             CHURCH_IF_THEN_ELSE(
-                applicator(church_is_one(), var(n)),
-                church_one(),
-                applicator(applicator(
-                    church_add(),
-                    applicator(var(rec),
-                        applicator(church_predecessor(), var(n)))),
-                    applicator(var(rec),
-                        applicator(church_predecessor2x(), var(n))))))));
-    // clang-format on
+                apply(church_is_zero(), var(n)),
+                church_zero(),
+                CHURCH_IF_THEN_ELSE(
+                    apply(church_is_one(), var(n)),
+                    church_one(),
+                    apply(
+                        apply(
+                            church_add(),
+                            apply(
+                                var(rec), apply(church_predecessor(), var(n)))),
+                        apply(
+                            var(rec),
+                            apply(church_predecessor2x(), var(n))))))));
 }
 
 static struct lambda_term *
 y_fibonacci_term(void) {
-    return applicator(y_combinator(), y_fibonacci_function());
+    return apply(y_combinator(), y_fibonacci_function());
 }
 
 static struct lambda_term *
 y_fibonacci_test(void) {
-    return applicator(y_fibonacci_term(), church_three());
+    return apply(y_fibonacci_term(), church_three());
 }
 
 // The WHY combinator
@@ -676,30 +648,27 @@ why_combinator(void) {
 
     return lambda(
         f,
-        applicator(
+        apply(
             lambda(
                 u,
-                applicator(
-                    applicator(
+                apply(
+                    apply(
                         var(u),
                         lambda(
                             a,
-                            lambda(
-                                f2,
-                                applicator(
-                                    applicator(var(f2), var(a)), var(a))))),
+                            lambda(f2, apply(apply(var(f2), var(a)), var(a))))),
                     var(u))),
             lambda(
                 d,
                 lambda(
                     u2,
-                    applicator(
+                    apply(
                         var(f),
                         lambda(
                             i,
-                            applicator(
-                                applicator(applicator(var(i), var(d)), var(u2)),
-                                lambda(x, applicator(var(x), var(d))))))))));
+                            apply(
+                                apply(apply(var(i), var(d)), var(u2)),
+                                lambda(x, apply(var(x), var(d))))))))));
 }
 
 static struct lambda_term *
@@ -711,23 +680,23 @@ why_factorial_function(void) {
         lambda(
             n,
             CHURCH_IF_THEN_ELSE(
-                applicator(church_is_zero(), var(n)),
+                apply(church_is_zero(), var(n)),
                 church_one(),
-                applicator(
-                    applicator(church_multiply(), var(n)),
-                    applicator(
-                        applicator(var(rec), i_combinator()),
-                        applicator(church_predecessor(), var(n)))))));
+                apply(
+                    apply(church_multiply(), var(n)),
+                    apply(
+                        apply(var(rec), i_combinator()),
+                        apply(church_predecessor(), var(n)))))));
 }
 
 static struct lambda_term *
 why_factorial_term(void) {
-    return applicator(why_combinator(), why_factorial_function());
+    return apply(why_combinator(), why_factorial_function());
 }
 
 static struct lambda_term *
 why_factorial_test(void) {
-    return applicator(why_factorial_term(), church_three());
+    return apply(why_factorial_term(), church_three());
 }
 
 // Church lists
@@ -752,18 +721,18 @@ church_cons(void) {
                 f,
                 lambda(
                     n,
-                    applicator(
-                        applicator(var(f), var(h)),
-                        applicator(applicator(var(t), var(f)), var(n)))))));
+                    apply(
+                        apply(var(f), var(h)),
+                        apply(apply(var(t), var(f)), var(n)))))));
 }
 
 static struct lambda_term *
 church_list_1_2_3(void) {
-    return applicator(
-        applicator(church_cons(), cell(1)),
-        applicator(
-            applicator(church_cons(), cell(2)),
-            applicator(applicator(church_cons(), cell(3)), church_nil())));
+    return apply(
+        apply(church_cons(), cell(1)),
+        apply(
+            apply(church_cons(), cell(2)),
+            apply(apply(church_cons(), cell(3)), church_nil())));
 }
 
 static struct lambda_term *
@@ -772,8 +741,8 @@ church_sum_list(void) {
 
     return lambda(
         list,
-        applicator(
-            applicator(
+        apply(
+            apply(
                 var(list),
                 lambda(x, lambda(y, binary_call(add, var(x), var(y))))),
             cell(0)));
@@ -781,30 +750,35 @@ church_sum_list(void) {
 
 static struct lambda_term *
 church_sum_list_test(void) {
-    return applicator(church_sum_list(), church_list_1_2_3());
+    return apply(church_sum_list(), church_list_1_2_3());
 }
 
 static struct lambda_term *
 church_reverse(void) {
     struct lambda_term *xs, *x, *cont, *f, *n;
 
-    // clang-format off
     return lambda(
         xs,
-        applicator(
-            applicator(
+        apply(
+            apply(
                 var(xs),
-                lambda(x, lambda(cont, lambda(f, lambda(n,
-                    applicator(
-                        applicator(var(cont), var(f)),
-                        applicator(applicator(var(f), var(x)), var(n)))))))),
+                lambda(
+                    x,
+                    lambda(
+                        cont,
+                        lambda(
+                            f,
+                            lambda(
+                                n,
+                                apply(
+                                    apply(var(cont), var(f)),
+                                    apply(apply(var(f), var(x)), var(n)))))))),
             church_nil()));
-    // clang-format on
 }
 
 static struct lambda_term *
 church_reverse_test(void) {
-    return applicator(church_reverse(), church_list_1_2_3());
+    return apply(church_reverse(), church_list_1_2_3());
 }
 
 static struct lambda_term *
@@ -819,24 +793,24 @@ church_append(void) {
                 f,
                 lambda(
                     n,
-                    applicator(
-                        applicator(var(xs), var(f)),
-                        applicator(applicator(var(ys), var(f)), var(n)))))));
+                    apply(
+                        apply(var(xs), var(f)),
+                        apply(apply(var(ys), var(f)), var(n)))))));
 }
 
 static struct lambda_term *
 church_list_4_5_6(void) {
-    return applicator(
-        applicator(church_cons(), cell(4)),
-        applicator(
-            applicator(church_cons(), cell(5)),
-            applicator(applicator(church_cons(), cell(6)), church_nil())));
+    return apply(
+        apply(church_cons(), cell(4)),
+        apply(
+            apply(church_cons(), cell(5)),
+            apply(apply(church_cons(), cell(6)), church_nil())));
 }
 
 static struct lambda_term *
 church_append_test(void) {
-    return applicator(
-        applicator(church_append(), church_list_1_2_3()), church_list_4_5_6());
+    return apply(
+        apply(church_append(), church_list_1_2_3()), church_list_4_5_6());
 }
 
 // Scott numerals
@@ -853,44 +827,42 @@ static struct lambda_term *
 scott_one(void) {
     struct lambda_term *s, *z;
 
-    return lambda(s, lambda(z, applicator(var(s), scott_zero())));
+    return lambda(s, lambda(z, apply(var(s), scott_zero())));
 }
 
 static struct lambda_term *
 scott_two(void) {
     struct lambda_term *s, *z;
 
-    return lambda(s, lambda(z, applicator(var(s), scott_one())));
+    return lambda(s, lambda(z, apply(var(s), scott_one())));
 }
 
 static struct lambda_term *
 scott_three(void) {
     struct lambda_term *s, *z;
 
-    return lambda(s, lambda(z, applicator(var(s), scott_two())));
+    return lambda(s, lambda(z, apply(var(s), scott_two())));
 }
 
 static struct lambda_term *
 scott_successor(void) {
     struct lambda_term *n, *s, *z;
 
-    return lambda(n, lambda(s, lambda(z, applicator(var(s), var(n)))));
+    return lambda(n, lambda(s, lambda(z, apply(var(s), var(n)))));
 }
 
 static struct lambda_term *
 scott_predecessor(void) {
     struct lambda_term *n, *x;
 
-    return lambda(
-        n, applicator(applicator(var(n), lambda(x, var(x))), scott_zero()));
+    return lambda(n, apply(apply(var(n), lambda(x, var(x))), scott_zero()));
 }
 
 static struct lambda_term *
 scott_three_successor_predecessor2x_test(void) {
-    return applicator(
+    return apply(
         scott_predecessor(),
-        applicator(
-            scott_predecessor(), applicator(scott_successor(), scott_three())));
+        apply(scott_predecessor(), apply(scott_successor(), scott_three())));
 }
 
 // Scott lists
@@ -909,49 +881,50 @@ scott_cons(void) {
 
     return lambda(
         h,
-        lambda(
-            t,
-            lambda(
-                n, lambda(c, applicator(applicator(var(c), var(h)), var(t))))));
+        lambda(t, lambda(n, lambda(c, apply(apply(var(c), var(h)), var(t))))));
 }
 
 static struct lambda_term *
 scott_singleton(void) {
     struct lambda_term *x;
 
-    return lambda(x, applicator(applicator(scott_cons(), var(x)), scott_nil()));
+    return lambda(x, apply(apply(scott_cons(), var(x)), scott_nil()));
 }
 
 static struct lambda_term *
 scott_sum_list(void) {
     struct lambda_term *rec, *list, *x, *xs;
 
-    // clang-format off
-    return fix(lambda(rec, lambda(list,
-        applicator(
-            applicator(var(list), cell(0)),
-            lambda(x, lambda(xs,
-                binary_call(add, var(x), applicator(var(rec), var(xs)))))))));
-    // clang-format on
+    return fix(lambda(
+        rec,
+        lambda(
+            list,
+            apply(
+                apply(var(list), cell(0)),
+                lambda(
+                    x,
+                    lambda(
+                        xs,
+                        binary_call(
+                            add, var(x), apply(var(rec), var(xs)))))))));
 }
 
 static struct lambda_term *
 scott_list_1_2_3_4_5(void) {
-    return applicator(
-        applicator(scott_cons(), cell(1)),
-        applicator(
-            applicator(scott_cons(), cell(2)),
-            applicator(
-                applicator(scott_cons(), cell(3)),
-                applicator(
-                    applicator(scott_cons(), cell(4)),
-                    applicator(
-                        applicator(scott_cons(), cell(5)), scott_nil())))));
+    return apply(
+        apply(scott_cons(), cell(1)),
+        apply(
+            apply(scott_cons(), cell(2)),
+            apply(
+                apply(scott_cons(), cell(3)),
+                apply(
+                    apply(scott_cons(), cell(4)),
+                    apply(apply(scott_cons(), cell(5)), scott_nil())))));
 }
 
 static struct lambda_term *
 scott_sum_list_test(void) {
-    return applicator(scott_sum_list(), scott_list_1_2_3_4_5());
+    return apply(scott_sum_list(), scott_list_1_2_3_4_5());
 }
 
 // clang-format off
@@ -965,15 +938,15 @@ scott_insert(void) {
 
     // clang-format off
     return fix(lambda(rec, lambda(y, lambda(list,
-        applicator(applicator(var(list),
-            applicator(scott_singleton(), var(y))),
+        apply(apply(var(list),
+            apply(scott_singleton(), var(y))),
             lambda(z, lambda(zs,
                 if_then_else(
                     binary_call(less_than_or_equal, var(y), var(z)),
-                    applicator(applicator(scott_cons(), var(y)),
-                        applicator(applicator(scott_cons(), var(z)), var(zs))),
-                    applicator(applicator(scott_cons(), var(z)),
-                        applicator(applicator(
+                    apply(apply(scott_cons(), var(y)),
+                        apply(apply(scott_cons(), var(z)), var(zs))),
+                    apply(apply(scott_cons(), var(z)),
+                        apply(apply(
                             var(rec), var(y)), var(zs)))))))))));
     // clang-format on
 }
@@ -986,29 +959,28 @@ scott_insertion_sort(void) {
         rec,
         lambda(
             list,
-            applicator(
-                applicator(var(list), scott_nil()),
+            apply(
+                apply(var(list), scott_nil()),
                 lambda(
                     x,
                     lambda(
                         xs,
-                        applicator(
-                            applicator(scott_insert(), var(x)),
-                            applicator(var(rec), var(xs)))))))));
+                        apply(
+                            apply(scott_insert(), var(x)),
+                            apply(var(rec), var(xs)))))))));
 }
 
 static struct lambda_term *
 scott_list_3_1_4_1_5(void) {
-    return applicator(
-        applicator(scott_cons(), cell(3)),
-        applicator(
-            applicator(scott_cons(), cell(1)),
-            applicator(
-                applicator(scott_cons(), cell(4)),
-                applicator(
-                    applicator(scott_cons(), cell(1)),
-                    applicator(
-                        applicator(scott_cons(), cell(5)), scott_nil())))));
+    return apply(
+        apply(scott_cons(), cell(3)),
+        apply(
+            apply(scott_cons(), cell(1)),
+            apply(
+                apply(scott_cons(), cell(4)),
+                apply(
+                    apply(scott_cons(), cell(1)),
+                    apply(apply(scott_cons(), cell(5)), scott_nil())))));
 }
 
 // clang-format off
@@ -1025,19 +997,19 @@ scott_concatenate_list(void) {
 
     // clang-format off
     return fix(lambda(rec, lambda(list,
-        applicator(
-            applicator(var(list), cell(0)),
+        apply(
+            apply(var(list), cell(0)),
             lambda(x, lambda(xs,
                 binary_call(concatenate_ints,
-                    var(x), applicator(var(rec), var(xs)))))))));
+                    var(x), apply(var(rec), var(xs)))))))));
     // clang-format on
 }
 
 static struct lambda_term *
 scott_insertion_sort_test(void) {
-    return applicator(
+    return apply(
         scott_concatenate_list(),
-        applicator(scott_insertion_sort(), scott_list_3_1_4_1_5()));
+        apply(scott_insertion_sort(), scott_list_3_1_4_1_5()));
 }
 
 // Scott quicksort
@@ -1057,15 +1029,15 @@ scott_filter(void) {
 
     // clang-format off
     return fix(lambda(rec, lambda(f, lambda(list,
-        applicator(
-            applicator(var(list), scott_nil()),
+        apply(
+            apply(var(list), scott_nil()),
             lambda(x, lambda(xs,
                 if_then_else(
-                    applicator(var(f), var(x)),
-                    applicator(
-                        applicator(scott_cons(), var(x)),
-                        applicator(applicator(var(rec), var(f)), var(xs))),
-                    applicator(applicator(var(rec), var(f)), var(xs))))))))));
+                    apply(var(f), var(x)),
+                    apply(
+                        apply(scott_cons(), var(x)),
+                        apply(apply(var(rec), var(f)), var(xs))),
+                    apply(apply(var(rec), var(f)), var(xs))))))))));
     // clang-format on
 }
 
@@ -1075,11 +1047,11 @@ scott_append(void) {
 
     // clang-format off
     return fix(lambda(rec, lambda(xs, lambda(ys,
-        applicator(
-            applicator(var(xs), var(ys)),
+        apply(
+            apply(var(xs), var(ys)),
             lambda(x, lambda(xss,
-                applicator(applicator(scott_cons(), var(x)),
-                    applicator(applicator(var(rec), var(xss)), var(ys))))))))));
+                apply(apply(scott_cons(), var(x)),
+                    apply(apply(var(rec), var(xss)), var(ys))))))))));
     // clang-format on
 }
 
@@ -1089,17 +1061,17 @@ scott_quicksort(void) {
 
     // clang-format off
     return fix(lambda(rec, lambda(list,
-        applicator(applicator(var(list), scott_nil()),
-            lambda(x, lambda(xs, applicator(applicator(scott_append(),
-                applicator(var(rec),
-                    applicator(
-                        applicator(scott_filter(),
+        apply(apply(var(list), scott_nil()),
+            lambda(x, lambda(xs, apply(apply(scott_append(),
+                apply(var(rec),
+                    apply(
+                        apply(scott_filter(),
                             lambda(y, binary_call(less_than, var(y), var(x)))),
                         var(xs)))),
-                applicator(applicator(scott_cons(), var(x)),
-                    applicator(var(rec),
-                        applicator(
-                            applicator(scott_filter(),
+                apply(apply(scott_cons(), var(x)),
+                    apply(var(rec),
+                        apply(
+                            apply(scott_filter(),
                                 lambda(z, binary_call(greater_than_or_equal,
                                     var(z), var(x)))),
                             var(xs)))))))))));
@@ -1108,28 +1080,28 @@ scott_quicksort(void) {
 
 static struct lambda_term *
 scott_list_9_2_7_3_8_1_4(void) {
-    return applicator(
-        applicator(scott_cons(), cell(9)),
-        applicator(
-            applicator(scott_cons(), cell(2)),
-            applicator(
-                applicator(scott_cons(), cell(7)),
-                applicator(
-                    applicator(scott_cons(), cell(3)),
-                    applicator(
-                        applicator(scott_cons(), cell(8)),
-                        applicator(
-                            applicator(scott_cons(), cell(1)),
-                            applicator(
-                                applicator(scott_cons(), cell(4)),
+    return apply(
+        apply(scott_cons(), cell(9)),
+        apply(
+            apply(scott_cons(), cell(2)),
+            apply(
+                apply(scott_cons(), cell(7)),
+                apply(
+                    apply(scott_cons(), cell(3)),
+                    apply(
+                        apply(scott_cons(), cell(8)),
+                        apply(
+                            apply(scott_cons(), cell(1)),
+                            apply(
+                                apply(scott_cons(), cell(4)),
                                 scott_nil())))))));
 }
 
 static struct lambda_term *
 scott_quicksort_test(void) {
-    return applicator(
+    return apply(
         scott_concatenate_list(),
-        applicator(scott_quicksort(), scott_list_9_2_7_3_8_1_4()));
+        apply(scott_quicksort(), scott_list_9_2_7_3_8_1_4()));
 }
 
 // Scott binary trees
@@ -1139,7 +1111,7 @@ static struct lambda_term *
 scott_leaf(void) {
     struct lambda_term *v, *leaf, *node;
 
-    return lambda(v, lambda(leaf, lambda(node, applicator(var(leaf), var(v)))));
+    return lambda(v, lambda(leaf, lambda(node, apply(var(leaf), var(v)))));
 }
 
 static struct lambda_term *
@@ -1152,9 +1124,7 @@ scott_node(void) {
             rhs,
             lambda(
                 leaf,
-                lambda(
-                    node,
-                    applicator(applicator(var(node), var(lhs)), var(rhs))))));
+                lambda(node, apply(apply(var(node), var(lhs)), var(rhs))))));
 }
 
 static struct lambda_term *
@@ -1165,16 +1135,16 @@ scott_tree_sum(void) {
         rec,
         lambda(
             tree,
-            applicator(
-                applicator(var(tree), lambda(v, var(v))),
+            apply(
+                apply(var(tree), lambda(v, var(v))),
                 lambda(
                     lhs,
                     lambda(
                         rhs,
                         binary_call(
                             add,
-                            applicator(var(rec), var(lhs)),
-                            applicator(var(rec), var(rhs)))))))));
+                            apply(var(rec), var(lhs)),
+                            apply(var(rec), var(rhs)))))))));
 }
 
 static struct lambda_term *
@@ -1183,46 +1153,46 @@ scott_tree_map(void) {
 
     // clang-format off
     return fix(lambda(rec, lambda(f, lambda(tree,
-        applicator(
-            applicator(
+        apply(
+            apply(
                 var(tree),
-                lambda(v, applicator(scott_leaf(), applicator(var(f), var(v))))),
+                lambda(v, apply(scott_leaf(), apply(var(f), var(v))))),
             lambda(lhs, lambda(rhs,
-                applicator(
-                    applicator(
+                apply(
+                    apply(
                         scott_node(),
-                        applicator(applicator(var(rec), var(f)), var(lhs))),
-                    applicator(
-                        applicator(var(rec), var(f)), var(rhs))))))))));
+                        apply(apply(var(rec), var(f)), var(lhs))),
+                    apply(
+                        apply(var(rec), var(f)), var(rhs))))))))));
     // clang-format on
 }
 
 static struct lambda_term *
 scott_example_tree(void) {
-    return applicator(
-        applicator(
+    return apply(
+        apply(
             scott_node(),
-            applicator(
-                applicator(scott_node(), applicator(scott_leaf(), cell(1))),
-                applicator(scott_leaf(), cell(2)))),
-        applicator(
-            applicator(scott_node(), applicator(scott_leaf(), cell(3))),
-            applicator(scott_leaf(), cell(4))));
+            apply(
+                apply(scott_node(), apply(scott_leaf(), cell(1))),
+                apply(scott_leaf(), cell(2)))),
+        apply(
+            apply(scott_node(), apply(scott_leaf(), cell(3))),
+            apply(scott_leaf(), cell(4))));
 }
 
 static struct lambda_term *
 scott_tree_sum_test(void) {
-    return applicator(scott_tree_sum(), scott_example_tree());
+    return apply(scott_tree_sum(), scott_example_tree());
 }
 
 static struct lambda_term *
 scott_tree_map_and_sum_test(void) {
     struct lambda_term *x;
 
-    return applicator(
+    return apply(
         scott_tree_sum(),
-        applicator(
-            applicator(
+        apply(
+            apply(
                 scott_tree_map(),
                 lambda(x, binary_call(multiply, var(x), cell(2)))),
             scott_example_tree()));
@@ -1241,26 +1211,30 @@ static struct lambda_term *
 fix_ackermann(void) {
     struct lambda_term *rec, *m, *n;
 
-    // clang-format off
-    return fix(lambda(rec, lambda(m, lambda(n,
-        if_then_else(
-            unary_call(is_zero, var(m)),
-            unary_call(plus_one, var(n)),
-            if_then_else(
-                unary_call(is_zero, var(n)),
-                applicator(
-                    applicator(var(rec), unary_call(minus_one, var(m))), cell(1)),
-                applicator(
-                    applicator(var(rec), unary_call(minus_one, var(m))),
-                    applicator(
-                        applicator(var(rec), var(m)),
-                        unary_call(minus_one, var(n))))))))));
-    // clang-format on
+    return fix(lambda(
+        rec,
+        lambda(
+            m,
+            lambda(
+                n,
+                if_then_else(
+                    unary_call(is_zero, var(m)),
+                    unary_call(plus_one, var(n)),
+                    if_then_else(
+                        unary_call(is_zero, var(n)),
+                        apply(
+                            apply(var(rec), unary_call(minus_one, var(m))),
+                            cell(1)),
+                        apply(
+                            apply(var(rec), unary_call(minus_one, var(m))),
+                            apply(
+                                apply(var(rec), var(m)),
+                                unary_call(minus_one, var(n))))))))));
 }
 
 static struct lambda_term *
 fix_ackermann_test(void) {
-    return applicator(applicator(fix_ackermann(), cell(3)), cell(3));
+    return apply(apply(fix_ackermann(), cell(3)), cell(3));
 }
 
 // Examples from the literature
@@ -1270,34 +1244,27 @@ static struct lambda_term *
 lamping_example(void) { // Originally Lévy's
     struct lambda_term *g, *x, *h, *f, *z, *w, *y;
 
-    return applicator(
-        lambda(g, applicator(var(g), applicator(var(g), lambda(x, var(x))))),
+    return apply(
+        lambda(g, apply(var(g), apply(var(g), lambda(x, var(x))))),
         lambda(
             h,
-            applicator(
-                lambda(
-                    f,
-                    applicator(var(f), applicator(var(f), lambda(z, var(z))))),
-                lambda(
-                    w,
-                    applicator(
-                        var(h), applicator(var(w), lambda(y, var(y))))))));
+            apply(
+                lambda(f, apply(var(f), apply(var(f), lambda(z, var(z))))),
+                lambda(w, apply(var(h), apply(var(w), lambda(y, var(y))))))));
 }
 
 static struct lambda_term *
 lamping_example_2(void) {
     struct lambda_term *g, *x, *h, *f, *z, *y;
 
-    return applicator(
-        lambda(g, applicator(var(g), applicator(var(g), lambda(x, var(x))))),
+    return apply(
+        lambda(g, apply(var(g), apply(var(g), lambda(x, var(x))))),
         lambda(
             h,
-            applicator(
-                lambda(
-                    f,
-                    applicator(var(f), applicator(var(f), lambda(z, var(z))))),
+            apply(
+                lambda(f, apply(var(f), apply(var(f), lambda(z, var(z))))),
 
-                applicator(var(h), lambda(y, var(y))))));
+                apply(var(h), lambda(y, var(y))))));
 }
 
 static struct lambda_term *
@@ -1305,13 +1272,13 @@ asperti_guerrini_example(void) {
     struct lambda_term *z, *v, *w, *x, *y;
 
     struct lambda_term *once = lambda(v, var(v));
-    struct lambda_term *twice = lambda(w, applicator(var(w), var(w)));
+    struct lambda_term *twice = lambda(w, apply(var(w), var(w)));
 
     return lambda(
         z,
-        applicator(
-            lambda(x, applicator(var(x), once)),
-            lambda(y, applicator(twice, applicator(var(y), var(z))))));
+        apply(
+            lambda(x, apply(var(x), once)),
+            lambda(y, apply(twice, apply(var(y), var(z))))));
 }
 
 static struct lambda_term *
@@ -1319,12 +1286,10 @@ wadsworth_example(void) { // Asperti & Guerrini
     struct lambda_term *v, *w, *x, *y;
 
     struct lambda_term *once = lambda(v, var(v));
-    struct lambda_term *twice = lambda(w, applicator(var(w), var(w)));
+    struct lambda_term *twice = lambda(w, apply(var(w), var(w)));
 
     return lambda(
-        y,
-        applicator(
-            twice, applicator(lambda(x, applicator(var(x), var(y))), once)));
+        y, apply(twice, apply(lambda(x, apply(var(x), var(y))), once)));
 }
 
 static struct lambda_term *
@@ -1337,13 +1302,9 @@ wadsworth_counterexample(void) { // Asperti & Guerrini
         y,
         lambda(
             z,
-            applicator(
-                lambda(
-                    x,
-                    applicator(
-                        applicator(var(x), var(y)),
-                        applicator(var(x), var(z)))),
-                lambda(w, applicator(once, var(w))))));
+            apply(
+                lambda(x, apply(apply(var(x), var(y)), apply(var(x), var(z)))),
+                lambda(w, apply(once, var(w))))));
 }
 
 // Optiscope inside Optiscope
@@ -1363,7 +1324,7 @@ fix_factorial_function(void) {
                 binary_call(
                     multiply,
                     var(n),
-                    applicator(var(f), unary_call(minus_one, var(n)))))));
+                    apply(var(f), unary_call(minus_one, var(n)))))));
 }
 
 static uint64_t optiscope_inside_optiscope_result = 0;
@@ -1377,7 +1338,7 @@ extract_result(const uint64_t n) {
 static uint64_t
 inner_factorial(const uint64_t n) {
     struct lambda_term *const term = unary_call(
-        extract_result, applicator(fix(fix_factorial_function()), cell(n)));
+        extract_result, apply(fix(fix_factorial_function()), cell(n)));
 
     optiscope_algorithm(NULL, term);
 
@@ -1392,8 +1353,8 @@ scott_factorial_sum(void) {
         rec,
         lambda(
             list,
-            applicator(
-                applicator(var(list), cell(0)),
+            apply(
+                apply(var(list), cell(0)),
                 lambda(
                     x,
                     lambda(
@@ -1401,12 +1362,12 @@ scott_factorial_sum(void) {
                         binary_call(
                             add,
                             unary_call(inner_factorial, var(x)),
-                            applicator(var(rec), var(xs)))))))));
+                            apply(var(rec), var(xs)))))))));
 }
 
 static struct lambda_term *
 optiscope_inside_optiscope(void) {
-    return applicator(scott_factorial_sum(), scott_list_1_2_3_4_5());
+    return apply(scott_factorial_sum(), scott_list_1_2_3_4_5());
 }
 
 // The test driver

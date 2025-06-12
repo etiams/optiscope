@@ -2942,7 +2942,7 @@ to_lambda_string(
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 enum lambda_term_type {
-    LAMBDA_TERM_APPLICATOR,
+    LAMBDA_TERM_APPLY,
     LAMBDA_TERM_LAMBDA,
     LAMBDA_TERM_VAR,
     LAMBDA_TERM_CELL,
@@ -2953,7 +2953,7 @@ enum lambda_term_type {
     LAMBDA_TERM_PERFORM,
 };
 
-struct applicator_data {
+struct apply_data {
     struct lambda_term *rator, *rand;
 };
 
@@ -2988,7 +2988,7 @@ struct perform_data {
 };
 
 union lambda_term_data {
-    struct applicator_data applicator;
+    struct apply_data apply;
     struct lambda_data lambda;
     struct lambda_data *var; // the pointer to the binding lambda
     uint64_t cell;
@@ -3005,13 +3005,13 @@ struct lambda_term {
 };
 
 extern LambdaTerm
-applicator(const restrict LambdaTerm rator, const restrict LambdaTerm rand) {
+apply(const restrict LambdaTerm rator, const restrict LambdaTerm rand) {
     assert(rator), assert(rand);
 
     struct lambda_term *const term = xmalloc(sizeof *term);
-    term->ty = LAMBDA_TERM_APPLICATOR;
-    term->data.applicator.rator = rator;
-    term->data.applicator.rand = rand;
+    term->ty = LAMBDA_TERM_APPLY;
+    term->data.apply.rator = rator;
+    term->data.apply.rand = rand;
 
     return term;
 }
@@ -3159,9 +3159,9 @@ count_binder_usage(
     assert(lambda);
 
     switch (term->ty) {
-    case LAMBDA_TERM_APPLICATOR:
-        return count_binder_usage(term->data.applicator.rator, lambda) +
-               count_binder_usage(term->data.applicator.rand, lambda);
+    case LAMBDA_TERM_APPLY:
+        return count_binder_usage(term->data.apply.rator, lambda) +
+               count_binder_usage(term->data.apply.rand, lambda);
     case LAMBDA_TERM_LAMBDA:
         return count_binder_usage(term->data.lambda.body, lambda);
     case LAMBDA_TERM_VAR: return lambda == term->data.var;
@@ -3275,9 +3275,9 @@ of_lambda_term(
     assert(output_port);
 
     switch (term->ty) {
-    case LAMBDA_TERM_APPLICATOR: {
-        struct lambda_term *const rator = term->data.applicator.rator, //
-            *const rand = term->data.applicator.rand;
+    case LAMBDA_TERM_APPLY: {
+        struct lambda_term *const rator = term->data.apply.rator, //
+            *const rand = term->data.apply.rand;
         XASSERT(rator), XASSERT(rand);
 
         const struct node applicator = alloc_node(graph, SYMBOL_APPLICATOR);

@@ -78,12 +78,12 @@ program(void) {
                                             uint64_t)"This isn't a palindrome."),
                                         var(token))),
                                 binary_call(my_free, var(s), var(token))),
-                            applicator(var(rec), var(token)))))))));
+                            apply(var(rec), var(token)))))))));
 }
 
 int
 main(void) {
     optiscope_open_pools();
-    optiscope_algorithm(NULL, applicator(program(), cell(0)));
+    optiscope_algorithm(NULL, apply(program(), cell(0)));
     optiscope_close_pools();
 }
