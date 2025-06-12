@@ -365,7 +365,7 @@ STATIC_ASSERT(UINT64_MAX == MAX_DELIMITER_INDEX, "Every bit of a symbol must be 
 #define SYMBOL_BINARY_CALL_AUX UINT64_C(8)
 #define SYMBOL_IF_THEN_ELSE    UINT64_C(9)
 #define SYMBOL_FIX             UINT64_C(10)
-#define SYMBOL_UNUSED          UINT64_C(11)
+#define SYMBOL_PERFORM         UINT64_C(11)
 #define SYMBOL_DUPLICATOR(i)   (MAX_REGULAR_SYMBOL + 1 + (i))
 #define SYMBOL_DELIMITER(i)    (MAX_DUPLICATOR_INDEX + 1 + (i))
 
@@ -411,7 +411,8 @@ ports_count(const uint64_t symbol) {
     case SYMBOL_FIX: return 2;
     case SYMBOL_APPLICATOR:
     case SYMBOL_LAMBDA:
-    case SYMBOL_BINARY_CALL: return 3;
+    case SYMBOL_BINARY_CALL:
+    case SYMBOL_PERFORM: return 3;
     case SYMBOL_ERASER:
     case SYMBOL_CELL: return 1;
     case SYMBOL_IF_THEN_ELSE: return 4;
@@ -479,7 +480,8 @@ symbol_index(const uint64_t symbol) {
     case SYMBOL_BINARY_CALL:
     case SYMBOL_BINARY_CALL_AUX:
     case SYMBOL_IF_THEN_ELSE:
-    case SYMBOL_FIX: return -1;
+    case SYMBOL_FIX:
+    case SYMBOL_PERFORM: return -1;
     default:
         if (symbol <= MAX_DUPLICATOR_INDEX) goto duplicator;
         else if (symbol <= MAX_DELIMITER_INDEX) goto delimiter;
@@ -510,6 +512,7 @@ print_symbol(const uint64_t symbol) {
     case SYMBOL_BINARY_CALL_AUX: sprintf(buffer, "binary-call-aux"); break;
     case SYMBOL_IF_THEN_ELSE: sprintf(buffer, "if-then-else"); break;
     case SYMBOL_FIX: sprintf(buffer, "fix"); break;
+    case SYMBOL_PERFORM: sprintf(buffer, "perform"); break;
     default:
         if (symbol <= MAX_DUPLICATOR_INDEX) goto duplicator;
         else if (symbol <= MAX_DELIMITER_INDEX) goto delimiter;
@@ -783,6 +786,7 @@ POOL_ALLOCATOR(binary_call, sizeof(uint64_t) * 5)
 POOL_ALLOCATOR(binary_call_aux, sizeof(uint64_t) * 5)
 POOL_ALLOCATOR(if_then_else, sizeof(uint64_t) * 5)
 POOL_ALLOCATOR(fix, sizeof(uint64_t) * 3)
+POOL_ALLOCATOR(perform, sizeof(uint64_t) * 4)
 
 #define ALLOC_POOL_OBJECT(pool_name) pool_name##_alloc(pool_name)
 #define FREE_POOL_OBJECT(pool_name, object)                                    \
@@ -800,7 +804,8 @@ POOL_ALLOCATOR(fix, sizeof(uint64_t) * 3)
     X(binary_call_pool)                                                        \
     X(binary_call_aux_pool)                                                    \
     X(if_then_else_pool)                                                       \
-    X(fix_pool)
+    X(fix_pool)                                                                \
+    X(perform_pool)
 
 #define X(pool_name) static struct pool_name *pool_name = NULL;
 POOLS
@@ -1098,7 +1103,7 @@ unfocus(struct multifocus *const restrict focus) {
 #define CONTEXT_MULTIFOCUSES \
     X(betas) X(annihilations) X(commutations) \
     X(unary_calls) X(binary_calls) X(binary_calls_aux) \
-    X(if_then_elses) X(fixpoints)
+    X(if_then_elses) X(fixpoints) X(performs)
 // clang-format on
 
 struct context {
@@ -1275,9 +1280,12 @@ alloc_node_from(
     case SYMBOL_IF_THEN_ELSE:
         ports = ALLOC_POOL_OBJECT(if_then_else_pool);
         goto set_ports_3;
-    case SYMBOL_FIX:
+    case SYMBOL_FIX: //
         ports = ALLOC_POOL_OBJECT(fix_pool);
         goto set_ports_1;
+    case SYMBOL_PERFORM:
+        ports = ALLOC_POOL_OBJECT(perform_pool);
+        goto set_ports_2;
         // clang-format off
     duplicator:
         ports = ALLOC_POOL_OBJECT(duplicator_pool); goto set_ports_2;
@@ -1346,6 +1354,7 @@ free_node(const struct node node) {
         break;
     case SYMBOL_IF_THEN_ELSE: FREE_POOL_OBJECT(if_then_else_pool, p); break;
     case SYMBOL_FIX: FREE_POOL_OBJECT(fix_pool, p); break;
+    case SYMBOL_PERFORM: FREE_POOL_OBJECT(perform_pool, p); break;
     default:
         if (symbol <= MAX_DUPLICATOR_INDEX) goto duplicator;
         else if (symbol <= MAX_DELIMITER_INDEX) goto delimiter;
@@ -1502,6 +1511,7 @@ graphviz_edge_tailport(
         default: COMPILER_UNREACHABLE();
         }
     case SYMBOL_BINARY_CALL:
+    case SYMBOL_PERFORM:
         switch (i) {
         case 0: return "sw";
         case 1: return "n";
@@ -1789,6 +1799,7 @@ collect_garbage(
             }
             break;
         case SYMBOL_BINARY_CALL:
+        case SYMBOL_PERFORM:
             switch (i) {
             case 0: FOLLOW(f.ports[1]), FOLLOW(f.ports[2]), COLLECT(f); break;
             case 1: FOLLOW(f.ports[0]), FOLLOW(f.ports[2]), COLLECT(f); break;
@@ -1952,6 +1963,19 @@ assert_fix(
     assert(SYMBOL_LAMBDA == g.ports[-1]);
 }
 
+static void
+assert_perform(
+    const struct context *const restrict graph,
+    const struct node f,
+    const struct node g) {
+    assert(graph);
+    assert(graph->phase < PHASE_UNWIND);
+    assert(f.ports), assert(g.ports);
+    assert(is_interaction(f, g));
+    assert(SYMBOL_PERFORM == f.ports[-1]);
+    assert(SYMBOL_CELL == g.ports[-1]);
+}
+
 #else
 
 #define assert_annihilation(f, g)           ((void)0)
@@ -1962,6 +1986,7 @@ assert_fix(
 #define assert_binary_call_aux(graph, f, g) ((void)0)
 #define assert_if_then_else(graph, f, g)    ((void)0)
 #define assert_fix(graph, f, g)             ((void)0)
+#define assert_perform(graph, f, g)         ((void)0)
 
 #endif // NDEBUG
 
@@ -2312,6 +2337,27 @@ do_fix(
 
 TYPE_CHECK_RULE(do_fix);
 
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+do_perform(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    XASSERT(f.ports), XASSERT(g.ports);
+    assert_perform(graph, f, g);
+    debug_interaction(__func__, graph, f, g);
+
+#ifdef OPTISCOPE_ENABLE_STATS
+    graph->nperforms++;
+#endif
+
+    connect_ports(DECODE_ADDRESS(f.ports[1]), DECODE_ADDRESS(f.ports[2]));
+
+    free_node(f), free_node(g);
+}
+
+TYPE_CHECK_RULE(do_perform);
+
 COMPILER_NONNULL(1, 2) COMPILER_HOT //
 static void
 interact(
@@ -2535,7 +2581,16 @@ commute_bcall_delim(
 
 TYPE_CHECK_RULE(commute_bcall_delim);
 
-#define commute_bcall_aux_delim commute_ucall_delim
+COMPILER_NONNULL(1) COMPILER_HOT //
+static void
+commute_bcall_aux_delim(
+    // clang-format off
+    struct context *const restrict graph, const struct node f, const struct node g) {
+    // clang-format on
+    commute_ucall_delim(graph, f, g);
+}
+
+TYPE_CHECK_RULE(commute_bcall_aux_delim);
 
 COMPILER_NONNULL(1) COMPILER_HOT //
 static void
@@ -2895,6 +2950,7 @@ enum lambda_term_type {
     LAMBDA_TERM_BINARY_CALL,
     LAMBDA_TERM_IF_THEN_ELSE,
     LAMBDA_TERM_FIX,
+    LAMBDA_TERM_PERFORM,
 };
 
 struct applicator_data {
@@ -2927,6 +2983,10 @@ struct fix_data {
     struct lambda_term *f;
 };
 
+struct perform_data {
+    struct lambda_term *action, *k;
+};
+
 union lambda_term_data {
     struct applicator_data applicator;
     struct lambda_data lambda;
@@ -2936,6 +2996,7 @@ union lambda_term_data {
     struct binary_call_data b_call;
     struct if_then_else_data ite;
     struct fix_data fix;
+    struct perform_data perform;
 };
 
 struct lambda_term {
@@ -3056,6 +3117,18 @@ fix(const restrict LambdaTerm f) {
     return term;
 }
 
+extern LambdaTerm
+perform(const restrict LambdaTerm action, const restrict LambdaTerm k) {
+    assert(action), assert(k);
+
+    struct lambda_term *const term = xmalloc(sizeof *term);
+    term->ty = LAMBDA_TERM_PERFORM;
+    term->data.perform.action = action;
+    term->data.perform.k = k;
+
+    return term;
+}
+
 // Conversion from a lambda term
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -3104,6 +3177,9 @@ count_binder_usage(
                count_binder_usage(term->data.ite.if_else, lambda);
     case LAMBDA_TERM_FIX: //
         return count_binder_usage(term->data.fix.f, lambda);
+    case LAMBDA_TERM_PERFORM:
+        return count_binder_usage(term->data.perform.action, lambda) +
+               count_binder_usage(term->data.perform.k, lambda);
     default: COMPILER_UNREACHABLE();
     }
 }
@@ -3335,7 +3411,18 @@ of_lambda_term(
 
         break;
     }
+    case LAMBDA_TERM_PERFORM: {
+        struct lambda_term *const action = term->data.perform.action, //
+            *const k = term->data.perform.k;
+        XASSERT(action), XASSERT(k);
 
+        const struct node perform = alloc_node(graph, SYMBOL_PERFORM);
+        connect_ports(&perform.ports[1], output_port);
+        of_lambda_term(graph, action, &perform.ports[0], lvl);
+        of_lambda_term(graph, k, &perform.ports[2], lvl);
+
+        break;
+    }
     default: COMPILER_UNREACHABLE();
     }
 
@@ -3407,6 +3494,7 @@ of_lambda_term(
                 do_binary_call_aux(graph, g, f);                               \
             else if (SYMBOL_IF_THEN_ELSE == gsym)                              \
                 do_if_then_else(graph, g, f);                                  \
+            else if (SYMBOL_PERFORM == gsym) do_perform(graph, g, f);          \
             else if (IS_DELIMITER(gsym)) commute_cell_delim(graph, f, g);      \
             else if (IS_DUPLICATOR(gsym)) commute_cell_dup(graph, f, g);       \
             else commute(graph, f, g);                                         \
@@ -3433,6 +3521,10 @@ of_lambda_term(
             break;                                                             \
         case SYMBOL_FIX:                                                       \
             if (SYMBOL_LAMBDA == gsym) do_fix(graph, f, g);                    \
+            else commute(graph, f, g);                                         \
+            break;                                                             \
+        case SYMBOL_PERFORM:                                                   \
+            if (SYMBOL_CELL == gsym) do_perform(graph, f, g);                  \
             else commute(graph, f, g);                                         \
             break;                                                             \
         default:                                                               \
@@ -3465,14 +3557,13 @@ register_active_pair(
     XASSERT(f.ports), XASSERT(g.ports);
     assert(is_interaction(f, g));
 
-#undef commute_bcall_aux_delim // avoid redefinition
-
 #define beta(graph, f, g)                   focus_on(graph->betas, f)
 #define do_unary_call(graph, f, g)          focus_on(graph->unary_calls, f)
 #define do_binary_call(graph, f, g)         focus_on(graph->binary_calls, f)
 #define do_binary_call_aux(graph, f, g)     focus_on(graph->binary_calls_aux, f)
 #define do_if_then_else(graph, f, g)        focus_on(graph->if_then_elses, f)
 #define do_fix(graph, f, g)                 focus_on(graph->fixpoints, f)
+#define do_perform(graph, f, g)             focus_on(graph->performs, f)
 #define annihilate_delim_delim(graph, f, g) focus_on(graph->annihilations, f)
 #define annihilate_dup_dup(graph, f, g)     focus_on(graph->annihilations, f)
 #define commute(graph, f, g)                focus_on(graph->commutations, f)
@@ -3512,6 +3603,7 @@ register_active_pair(
 #undef commute
 #undef annihilate_dup_dup
 #undef annihilate_delim_delim
+#undef do_perform
 #undef do_fix
 #undef do_if_then_else
 #undef do_binary_call_aux

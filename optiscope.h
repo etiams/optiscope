@@ -121,6 +121,14 @@ if_then_else(
 extern LambdaTerm
 fix(restrict LambdaTerm f);
 
+/// Construct a perform operation that runs `action`, discards its result, &
+/// continues with `k`.
+extern LambdaTerm
+perform(restrict LambdaTerm action, restrict LambdaTerm k);
+
+/// Binds the result of `action` to the variable `x` & proceeds with `k`.
+#define bind(x, action, k) applicator(lambda((x), (k)), (action))
+
 /// Run the optimal reduction algorithm on the given `term`. The `term` object
 /// will be deallocated automatically.
 extern void

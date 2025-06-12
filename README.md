@@ -485,15 +485,16 @@ Well, in our benchmarks, we represent all data besides primitive integers as fun
 
 What conclusions should we draw from this? Have Haskell & OCaml so advanced in efficiency? Or does BOHM demonstrate superior performance on Church numerals onely? Should we invest our time in making optimality efficient, or is it better to start with a simple explicit substitution machine & then optimize it? I leave this question to the readers, as I have no definite answer.
 
-## Usage
+## API
 
 See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
 
 ### Commands
 
-| Execution | Description |
+| Usage | Description |
 |-----------|-------------|
 | `./command/test.sh` | Run the test suite `tests.c`. |
+| `./command/example.sh <example-name>` | Run the example from `examples/`. |
 | `./command/bench.sh` | Run all the benchmarks in `benchmarks/`. |
 | `./command/graphviz-state.sh` | Visualize `target/state.dot` as `target/state.dot.svg`. |
 | `./command/graphvis-all.sh` | Visualize all the `.dot` files in `target/`. |
