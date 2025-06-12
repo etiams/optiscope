@@ -2,7 +2,7 @@
 
 set -e
 
-optiscope_options="-DNDEBUG -DOPTISCOPE_MAX_COMMUTATIONS=1000000"
+optiscope_options="-DNDEBUG -DOPTISCOPE_ENABLE_HUGE_PAGES"
 compiler_options="-Wall -Wextra -std=gnu99 -O3 -funroll-loops -march=native -Wno-unused-function"
 all_options="$optiscope_options $compiler_options"
 

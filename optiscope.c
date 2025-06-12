@@ -602,7 +602,7 @@ xcalloc(const size_t n, const size_t size) {
     return object;
 }
 
-#ifdef __linux__
+#if defined(OPTISCOPE_ENABLE_HUGE_PAGES) && defined(__linux__)
 
 #define HUGE_PAGE_SIZE_2MB (2 * 1024 * 1024)
 
@@ -644,14 +644,14 @@ free_chunk(void *const memory) {
     }
 }
 
-#else // inferior systems that doe not support huge pages
+#else // either huge pages are not requested or it is not Linux
 
 #define POOL_CHUNK_LIST_SIZE(chunk_size) 1024
 
 #define alloc_chunk xmalloc
 #define free_chunk  free
 
-#endif // __linux__
+#endif
 
 #define POOL_ALLOCATOR(prefix, chunk_size)                                     \
     union prefix##_chunk {                                                     \

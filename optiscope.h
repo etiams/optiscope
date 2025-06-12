@@ -50,6 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // - `OPTISCOPE_MULTIFOCUS_COUNT`
 //   The initiall number of nodes for the contiguous segment of multifocuses.
 //   Defaulting to 4096.
+// - `OPTISCOPE_ENABLE_HUGE_PAGES`
+//   Use 2 MB huge pages for the memory pools (improves performance; requires
+//   Linux).
 
 #if defined(OPTISCOPE_ENABLE_GRAPHVIZ) && defined(NDEBUG)
 #error `OPTISCOPE_ENABLE_GRAPHVIZ` is not compatible with `NDEBUG`!
