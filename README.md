@@ -171,13 +171,13 @@ Optiscope operates in **five discrete phases**: (1) weak reduction, (2) full red
 
 Mathematically, our implementation follows the Lambdascope formalism [^lambdascope], which is perhaps the simplest (among many others) proposal to optimality, involving onely six types of nodes & three rule schemes. As here we make no attempt at giving optimality a formal treatment, an interested reader is invited to read the paper for more details & ask any related questions in the issues.
 
-### Usage
+## Usage
 
 In this section, we demonstrate how to achieve side effects & manual resource management in the interaction net framework.
 
 TODO: write this section.
 
-### Optiscope inside Optiscope
+## Optiscope inside Optiscope
 
 Another interesting example, although perhaps not that practical, is to execute an optimal machine _from within_ an optimal machine.
 
