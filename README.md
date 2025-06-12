@@ -489,7 +489,7 @@ What conclusions should we draw from this? Have Haskell & OCaml so advanced in e
 
 See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
 
-### Commands
+## Commands
 
 | Usage | Description |
 |-----------|-------------|
