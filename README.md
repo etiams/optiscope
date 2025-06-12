@@ -509,7 +509,7 @@ all data are eventually represented as functions.
 
 Well, in our benchmarks, we represent all data besides primitive integers as functions. Nonethelesse, BOHM is still much slower than 50-line evaluators in Haskell & OCaml.
 
-What conclusions should we draw from this? Have Haskell & OCaml so advanced in efficiency? Or does BOHM demonstrate superior performance on Church numerals onely? Should we invest our time in making optimality efficient, or is it better to start with a simple explicit substitution machine & then optimize it? I leave this question to the readers, as I have no definite answer.
+What conclusions should we draw from this? Have Haskell & OCaml so advanced in efficiency over the decades? Or does BOHM demonstrate superior performance on Churh numerals onely? Should we invest our time in making optimality efficient, or is it better to start off with a simple explicit substitution machine & then gradually optimize it? I have no definite answer to these questions, but the point is: Optiscope is onely meant to incorporate side effects into the call-by-need lambda calculus, & it is by no means to be understood as a reduction machine aimed at maximum efficiency. While it is true that Optiscope is a heavily optimized implementation of Lambdascope, this fact does not entail that it is immediately faster than more traditional approaches.
 
 ## Implementation details
 
