@@ -330,25 +330,25 @@ Total interactions: 1305097260
 
 ### [Scott trees](benchmarks/scott-tree-map-and-sum.c)
 
-Description: Multiplies by 2 all the cells in a Scott-encoded binary tree of size 2^14, then sums all the cells up.
+Description: Multiplies by 2 all the cells in a Scott-encoded binary tree of size 2^16, then sums all the cells up.
 
 ```
 Benchmark 1: ./scott-tree-map-and-sum
-  Time (mean ± σ):     769.2 ms ±   4.2 ms    [User: 733.7 ms, System: 35.2 ms]
-  Range (min … max):   764.1 ms … 775.5 ms    5 runs
+  Time (mean ± σ):      3.206 s ±  0.020 s    [User: 3.066 s, System: 0.139 s]
+  Range (min … max):    3.190 s …  3.240 s    5 runs
 ```
 
 <details>
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 9412171
-Commutation interactions: 46968185
-Beta interactions: 294992
-Native function calls: 65534
+Annihilation interactions: 41713181
+Commutation interactions: 208464677
+Beta interactions: 1179740
+Native function calls: 262142
 If-then-elses: 0
-Fixpoints: 58
-Total interactions: 56740940
+Fixpoints: 66
+Total interactions: 251619806
 ```
 
 </details>

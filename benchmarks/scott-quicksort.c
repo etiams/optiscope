@@ -5,15 +5,14 @@ static struct lambda_term *
 generate_list(const uint64_t n) {
     struct lambda_term *term = scott_nil();
     for (uint64_t i = 0; i < n; i++) {
-        term = applicator(applicator(scott_cons(), cell(i)), term);
+        term = apply(apply(scott_cons(), cell(i)), term);
     }
 
     return term;
 }
 
 #define BENCHMARK_TERM                                                         \
-    applicator(                                                                \
-        scott_sum_list(), applicator(scott_quicksort(), generate_list(100)))
+    apply(scott_sum_list(), apply(scott_quicksort(), generate_list(100)))
 
 int
 main(void) {

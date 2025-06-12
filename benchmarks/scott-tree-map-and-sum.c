@@ -10,18 +10,18 @@ multiply_by_two(void) {
 
 static struct lambda_term *
 generate_tree(const uint64_t n) {
-    if (1 == n) { return applicator(scott_leaf(), cell(1)); }
+    if (1 == n) { return apply(scott_leaf(), cell(1)); }
 
-    return applicator(
-        applicator(scott_node(), generate_tree(n / 2)), generate_tree(n / 2));
+    return apply(
+        apply(scott_node(), generate_tree(n / 2)), generate_tree(n / 2));
 }
 
 #define BENCHMARK_TERM                                                         \
-    applicator(                                                                \
+    apply(                                                                     \
         scott_tree_sum(),                                                      \
-        applicator(                                                            \
-            applicator(scott_tree_map(), multiply_by_two()),                   \
-            generate_tree(16384)))
+        apply(                                                                 \
+            apply(scott_tree_map(), multiply_by_two()),                        \
+            generate_tree(65536 /* 2^16 */)))
 
 int
 main(void) {

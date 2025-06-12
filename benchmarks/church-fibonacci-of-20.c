@@ -3,19 +3,19 @@
 
 static struct lambda_term *
 church_ten(void) {
-    return applicator(applicator(church_add(), church_five()), church_five());
+    return apply(apply(church_add(), church_five()), church_five());
 }
 
 static struct lambda_term *
 church_twenty(void) {
-    return applicator(applicator(church_add(), church_ten()), church_ten());
+    return apply(apply(church_add(), church_ten()), church_ten());
 }
 
 #define BENCHMARK_TERM                                                         \
-    applicator(                                                                \
-        applicator(                                                            \
-            applicator(                                                        \
-                applicator(y_combinator(), y_fibonacci_function()),            \
+    apply(                                                                     \
+        apply(                                                                 \
+            apply(                                                             \
+                apply(y_combinator(), y_fibonacci_function()),                 \
                 church_twenty()),                                              \
             i_combinator()),                                                   \
         i_combinator())
