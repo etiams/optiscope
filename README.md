@@ -550,7 +550,6 @@ What conclusions should we draw from this? Have Haskell & OCaml so advanced in e
  - van Oostrom, Vincent. "Explicit substitution for graphs." Nieuwsbrief van de Nederlandse Vereniging voor Theoretische Informatica 9 (2005): 34-39.
  - Hassan, Abubakar, Ian Mackie, and Shinya Sato. "Compilation of interaction nets." Electronic Notes in Theoretical Computer Science 253.4 (2009): 73-90.
  - Hassan, Abubakar, Ian Mackie, and Shinya Sato. "An implementation model for interaction nets." arXiv preprint arXiv:1505.07164 (2015).
- - Biernacka, Małgorzata, Witold Charatonik, and Tomasz Drab. "A simple and efficient implementation of strong call by need by an abstract machine." Proceedings of the ACM on Programming Languages 6.ICFP (2022): 109-136.
 
 For readers unfamiliar with interaction nets, we recommend the originall Lafont's paper:
  - Lafont, Yves. "Interaction nets." Proceedings of the 17th ACM SIGPLAN-SIGACT symposium on Principles of programming languages. 1989.
