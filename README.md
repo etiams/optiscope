@@ -4,7 +4,7 @@
 
 _Optiscope_ is a Lévy-optimal implementation of the pure lambda calculus enriched with native function calls, if-then-else expressions, & a fixed-point operator.
 
-Being the first public implementation of [Lambdascope] [^lambdascope] written in portable C99, it is also the first interaction net reducer capable of calling user-provided functions at native speed. As such, this combination allows one to performe lazy evaluation with true side effects, without resorting to additional machinery like monads or algebraic effect handlers.
+Being the first public implementation of [Lambdascope] [^lambdascope] written in portable C99, it is also the first interaction net reducer capable of calling user-provided functions at native speed. As such, this combination allows one to interleave lazy evaluation with side effects, without resorting to external machinery like monads or algebraic effect handlers.
 
 [Lambdascope]: https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=61042374787bf6514706b49a5a4f0b74996979a0
 
@@ -149,7 +149,7 @@ As also discussed in [^lamping] & [^optimal-implementation], the technique of gr
 
 After the outermost reduction `((λx. ...) (λw. ...))` is complete, the two occurrences of `(λw. ((λv. v) w))` are now shared through the same parameter `x`. However, as this shared part is participating in both `((λw. ((λv. v) w)) y)` & `((λw. ((λv. v) w)) z)` simultaneously, it must be copied for the both redexes, lest substitution in either redex should affect the other one. In doing so, graph reduction also copies the redex `((λv. v) w)`, thereby duplicating work.
 
-_Optimal evaluation_ (in Lévy's sense [^levy-thesis] [^levy-optimal-reductions]) is a technique of reducing lambda terms to their normal forms, in practice done through so-called _interaction nets_, which are graphs of special symbols & unconditionally local rewriting rules. To reduce a lambda term, an optimal evaluator (1) translates the term to an interaction net, (2) applies a number of interactions (rewritings) in a non-deterministic order, & (3) when no more rules can be applied, translates the resulting net back to the syntactical universe of the lambda calculus. Unlike the other discussed techniques, it performes no copying whatsoever, thereby achieving _maximal sharing_ of redexes.
+_Optimal evaluation_ (in Lévy's sense [^levy-thesis] [^levy-optimal-reductions]) is a technique of reducing lambda terms to their normal forms, in practice done through so-called _interaction nets_, which are graphs of special symbols & unconditionally local rewriting rules. To reduce a lambda term, an optimal evaluator (1) translates the term to an interaction net, (2) applies a number of interactions (rewritings) in an implementation-defined order, & (3) when no more rules can be applied, translates the resulting net back to the syntactical universe of the lambda calculus. Unlike the other discussed techniques, it performes no copying whatsoever, thereby achieving _maximal sharing_ of redexes.
 
 In practice, this is how an interaction net looks like:
 
@@ -170,6 +170,32 @@ For an evaluator to be optimal, it must satisfie the following properties:
 Optiscope operates in **five discrete phases**: (1) weak reduction, (2) full reduction, (3) unwinding, (4) scope removal, & (5) loop cutting. The first two phases performe interaction net reduction; the latter phases read back the reduced net into a net that can be directly interpreted as a lambda calculus expression. Weak reduction achieves true Lévy-optimality by reducing onely _needed_ redexes (i.e., neither duplicating work nor touching redexes whose result will be discarded); the latter phases are to be understood as "extensions" that are not formally Lévy-optimal. In particular, although full reduction is guaranteed to reach beta normal forms, it is allowed to fire redexes whose result will be eventually discarded by subsequent computation. This choice is made of practical concerns, since implementing full Lévy-optimal reduction is neither easy, nor necessary; all functional machines in practice are weak anywaies.
 
 Mathematically, our implementation follows the Lambdascope formalism [^lambdascope], which is perhaps the simplest (among many others) proposal to optimality, involving onely six types of nodes & three rule schemes. As here we make no attempt at giving optimality a formal treatment, an interested reader is invited to read the paper for more details & ask any related questions in the issues.
+
+### Usage
+
+In this section, we demonstrate how to achieve side effects & manual resource management in the interaction net framework.
+
+TODO: write this section.
+
+### Optiscope inside Optiscope
+
+Another interesting example, although perhaps not that practical, is to execute an optimal machine _from within_ an optimal machine.
+
+TODO: write this section.
+
+## API
+
+See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
+
+## Commands
+
+| Usage | Description |
+|-----------|-------------|
+| `./command/test.sh` | Run the test suite `tests.c`. |
+| `./command/example.sh <example-name>` | Run the example `examples/<example-name>`. |
+| `./command/bench.sh` | Run all the benchmarks in `benchmarks/`. |
+| `./command/graphviz-state.sh` | Visualize `target/state.dot` as `target/state.dot.svg`. |
+| `./command/graphvis-all.sh` | Visualize all the `.dot` files in `target/`. |
 
 ## Benchmarks
 
@@ -484,20 +510,6 @@ all data are eventually represented as functions.
 Well, in our benchmarks, we represent all data besides primitive integers as functions. Nonethelesse, BOHM is still much slower than 50-line evaluators in Haskell & OCaml.
 
 What conclusions should we draw from this? Have Haskell & OCaml so advanced in efficiency? Or does BOHM demonstrate superior performance on Church numerals onely? Should we invest our time in making optimality efficient, or is it better to start with a simple explicit substitution machine & then optimize it? I leave this question to the readers, as I have no definite answer.
-
-## API
-
-See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
-
-## Commands
-
-| Usage | Description |
-|-----------|-------------|
-| `./command/test.sh` | Run the test suite `tests.c`. |
-| `./command/example.sh <example-name>` | Run the example from `examples/`. |
-| `./command/bench.sh` | Run all the benchmarks in `benchmarks/`. |
-| `./command/graphviz-state.sh` | Visualize `target/state.dot` as `target/state.dot.svg`. |
-| `./command/graphvis-all.sh` | Visualize all the `.dot` files in `target/`. |
 
 ## Implementation details
 
