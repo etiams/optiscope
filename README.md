@@ -290,9 +290,79 @@ Finally, notice that `my_strcmp` & `is_palindrome` are both pure functions used 
 
 ## Optiscope inside Optiscope
 
-Another interesting example, although perhaps not that practical, is to execute an optimal machine _from within_ an optimal machine.
+Another interesting example, although perhaps not that practical, is to execute an optimal machine _from within_ an optimal machine:
 
-TODO: write this section.
+```c
+// `is_zero`, `multiply`, `minus_one`, `add`, & `scott_list_1_2_3_4_5` are defined earlier.
+
+static struct lambda_term *
+fix_factorial_function(void) {
+    struct lambda_term *f, *n;
+
+    return lambda(
+        f,
+        lambda(
+            n,
+            if_then_else(
+                unary_call(is_zero, var(n)),
+                cell(1),
+                binary_call(
+                    multiply,
+                    var(n),
+                    apply(var(f), unary_call(minus_one, var(n)))))));
+}
+
+static uint64_t optiscope_inside_optiscope_result = 0;
+
+static uint64_t
+extract_result(const uint64_t n) {
+    optiscope_inside_optiscope_result = n;
+    return 0;
+}
+
+static uint64_t
+inner_factorial(const uint64_t n) {
+    struct lambda_term *const term = unary_call(
+        extract_result, apply(fix(fix_factorial_function()), cell(n)));
+
+    optiscope_algorithm(NULL, term);
+
+    return optiscope_inside_optiscope_result;
+}
+
+static struct lambda_term *
+scott_factorial_sum(void) {
+    struct lambda_term *rec, *list, *x, *xs;
+
+    return fix(lambda(
+        rec,
+        lambda(
+            list,
+            apply(
+                apply(var(list), cell(0)),
+                lambda(
+                    x,
+                    lambda(
+                        xs,
+                        binary_call(
+                            add,
+                            unary_call(inner_factorial, var(x)),
+                            apply(var(rec), var(xs)))))))));
+}
+
+static struct lambda_term *
+optiscope_inside_optiscope(void) {
+    return apply(scott_factorial_sum(), scott_list_1_2_3_4_5());
+}
+```
+
+Let us break down this example step-by-step:
+ 1. The `fix_factorial_function` function merely computes the factorial of `n` using recursion & native cells.
+ 1. The `inner_factorial` function accepts an integer `n` & tells Optiscope to compute `fix_factorial_function` on this `n`. When the computation is complete, we extract the result with `extract_result` into a global variable.
+ 1. Next, the `scott_factorial_sum` function computes a _factorial sum_ of a Scott-encoded list. However, instead of directly computing the factorial, we call `inner_factorial`, thereby delegating the work to a lower-level optimal machine.
+ 1. Finally, `optiscope_inside_optiscope` launches the algorithm on a Scott list `[1, 2, 3, 4, 5]`, eventually obtaining the result `cell[153]`, as evidenced in the tests.
+
+That is, inside user-provided functions we can essentially doe anything we want, including running Optiscope itself! Moreover, as the memory pools are global to the whole program, the higher-level & low-level optimal machines **share the same memory regions** during execution. Whether this technique has practical applications is a topic of future research.
 
 ## API
 
