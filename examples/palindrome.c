@@ -49,36 +49,26 @@ static struct lambda_term *
 program(void) {
     struct lambda_term *rec, *token, *s;
 
-    return fix(lambda(
-        rec,
-        lambda(
-            token,
+    // clang-format off
+    return fix(lambda(rec, lambda(token, perform(
+        binary_call(my_puts,
+          cell((uint64_t)"Enter your palindrome or type 'quit':"), var(token)),
+        bind(s,
+          unary_call(my_gets, var(token)),
+          if_then_else(
+            binary_call(my_strcmp, var(s), cell((uint64_t)"quit")),
+            binary_call(my_free, var(s), var(token)),
             perform(
-                binary_call(
-                    my_puts,
-                    cell((uint64_t)"Enter your palindrome or type 'quit':"),
-                    var(token)),
-                bind(
-                    s,
-                    unary_call(my_gets, var(token)),
-                    if_then_else(
-                        binary_call(my_strcmp, var(s), cell((uint64_t)"quit")),
-                        binary_call(my_free, var(s), var(token)),
-                        perform(
-                            perform(
-                                if_then_else(
-                                    unary_call(is_palindrome, var(s)),
-                                    binary_call(
-                                        my_puts,
-                                        cell((uint64_t)"This is a palindrome!"),
-                                        var(token)),
-                                    binary_call(
-                                        my_puts,
-                                        cell((
-                                            uint64_t)"This isn't a palindrome."),
-                                        var(token))),
-                                binary_call(my_free, var(s), var(token))),
-                            apply(var(rec), var(token)))))))));
+              if_then_else(
+                unary_call(is_palindrome, var(s)),
+                binary_call(my_puts,
+                  cell((uint64_t)"This is a palindrome!"), var(token)),
+                binary_call(my_puts,
+                  cell((uint64_t)"This isn't a palindrome."), var(token))),
+              perform(
+                binary_call(my_free, var(s), var(token)),
+                apply(var(rec), var(token))))))))));
+    // clang-format on
 }
 
 int
