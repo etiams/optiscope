@@ -175,7 +175,118 @@ Mathematically, our implementation follows the Lambdascope formalism [^lambdasco
 
 In this section, we demonstrate how to achieve side effects & manual resource management in the interaction net framework.
 
-TODO: write this section.
+Consider this program from [`examples/palindrome.c`](examples/palindrome.c):
+
+```c
+// Includes omitted...
+
+static uint64_t
+my_puts(const uint64_t s, const uint64_t token) {
+    (void)token;
+
+    return (uint64_t)puts((const char *)s);
+}
+
+static uint64_t
+my_gets(const uint64_t token) {
+    (void)token;
+
+    char *const s = malloc(256);
+    if (NULL == s) { perror("malloc"), abort(); }
+    scanf("%255s", s);
+    return (uint64_t)s;
+}
+
+static uint64_t
+my_free(const uint64_t s, const uint64_t token) {
+    (void)token;
+
+    free((void *)s);
+    return 0;
+}
+
+static uint64_t
+my_strcmp(const uint64_t s1, const uint64_t s2) {
+    return 0 == strcmp((const char *)s1, (const char *)s2) ? 1 : 0;
+}
+
+static uint64_t
+is_palindrome(uint64_t s) {
+    const char *const chars = (const char *)s;
+    const size_t len = strlen(chars);
+
+    for (size_t i = 0; i < len / 2; i++) {
+        if (chars[i] != chars[len - 1 - i]) { return 0; }
+    }
+
+    return 1;
+}
+
+static struct lambda_term *
+program(void) {
+    struct lambda_term *rec, *token, *s;
+
+    // clang-format off
+    return fix(lambda(rec, lambda(token, perform(
+        binary_call(my_puts,
+          cell((uint64_t)"Enter your palindrome or type 'quit':"), var(token)),
+        bind(s,
+          unary_call(my_gets, var(token)),
+          if_then_else(
+            binary_call(my_strcmp, var(s), cell((uint64_t)"quit")),
+            binary_call(my_free, var(s), var(token)),
+            perform(
+              if_then_else(
+                unary_call(is_palindrome, var(s)),
+                binary_call(my_puts,
+                  cell((uint64_t)"This is a palindrome!"), var(token)),
+                binary_call(my_puts,
+                  cell((uint64_t)"This isn't a palindrome."), var(token))),
+              perform(
+                binary_call(my_free, var(s), var(token)),
+                apply(var(rec), var(token))))))))));
+    // clang-format on
+}
+
+int
+main(void) {
+    optiscope_open_pools();
+    optiscope_algorithm(NULL, apply(program(), cell(0)));
+    optiscope_close_pools();
+}
+```
+
+It executes as follows:
+
+```
+$ ./command/example.sh palindrome
+Enter your palindrome or type 'quit':
+level
+This is a palindrome!
+Enter your palindrome or type 'quit':
+radar
+This is a palindrome!
+Enter your palindrome or type 'quit':
+obfuscation
+This isn't a palindrome.
+Enter your palindrome or type 'quit':
+quit
+```
+
+Without monads or effect handlers, we have just done some input/output interspersed with pure lazy computation!
+
+Let us see how this example works step-by-step:
+ 1. We enclose the whole program in `fix`, which is our built-in fixed-point combinator. The `rec` parameter stands for the current lambda function to be invoked recursively.
+ 1. Next, we accept a parameter `token`, which stands for an _effect token_. Its purpose will be clear later.
+ 1. The first thing we do in the function body is calling `my_puts`. Here, `my_puts` is an ordinary C function that accepts `s`, the string to be printed, & `token`. By calling `perform`, we _force_ the evaluation of `my_puts` to be performed _right now_.
+ 1. We bind the call of `my_gets` to the variable `s`. Here, `my_gets` will not be actually executed, because binding is lazy in Optiscope.
+ 1. We proceed with calling `my_strcmp`, thereby forcing `s`. If the string is `"quit"`, we manually call `my_free` and finish the evaluation. We doe not need to force `my_free` here, because it appears in a tail call position.
+ 1. If the input string is not `"quit"`, we force the evaluation of `is_palindrome` with its both branches.
+ 1. We finally force `my_free` to ensure no memory leaks occur, & proceed with a recursive call.
+
+From the optimality section, you remember that optimal reduction shares all explicit & virtual redexes -- if they are constructed "in the same way". This is the exact reason why we need to passe the `token` parameter to every side-effectfull function: we trick Optiscope to make it think that, given that the side-effecting redexes are constructed differently, it must repeatedly re-evaluate them each time it focuses on them; otherwise, it would just "cache" their results, once they are executed for the first time. Since the reduction strategy is fixed, it is safe to rely on Optiscope performing side effects in the exact order we wrote them.
+
+Finally, notice that `my_strcmp` & `is_palindrome` are both pure functions used as mere program subroutines. In fact, we use pure native functions quite extensively in [`tests.c`](tests.c), which allowed us to test Optiscope on a variety of classical algorithms, such as functional quicksort & the Ackermann function. Naturally, this opens another path for investigation: what if we delegate some CPU-bound computation to native functions & ask the optimal machine to efficiently share those computations?
 
 ## Optiscope inside Optiscope
 
