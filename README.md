@@ -44,7 +44,7 @@ Following the classical example (here borrowed from [^lamping]):
        (λw. (h (w (λy. y)))))))
 ```
 
-This term containes two redexes: the outer redex `((λg. ...) (λh. ...))` & the inner redex `((λf. ...) (λw. ...))`. If the outer redex is to be reduced first, which follows the normal order reduction strategy, the term will reduce in a single step to:
+This term conteyns two redexes: the outer redex `((λg. ...) (λh. ...))` & the inner redex `((λf. ...) (λw. ...))`. If the outer redex is to be reduced first, which follows the normal order reduction strategy, the term will reduce in a single step to:
 
 ```
 G := (λh. ((λf. (f (f (λz. z))))
@@ -836,6 +836,11 @@ What conclusions should we draw from this? Have Haskell & OCaml so advanced in e
 
 For readers unfamiliar with interaction nets, we recommend the originall Lafont's paper:
  - Lafont, Yves. "Interaction nets." Proceedings of the 17th ACM SIGPLAN-SIGACT symposium on Principles of programming languages. 1989.
+
+A more comprehensive collection of interaction net research can be found in [@marvinborner]'s [`interaction-net-resources`].
+
+[@marvinborner]: https://github.com/marvinborner
+[`interaction-net-resources`]: https://github.com/marvinborner/interaction-net-resources
 
 ## Bounty policy
 
