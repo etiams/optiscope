@@ -34,7 +34,7 @@ The shell commands are outlined in the following table:
 | `./command/graphviz-state.sh` | Visualize `target/state.dot` as `target/state.dot.svg`. |
 | `./command/graphvis-all.sh` | Visualize all the `.dot` files in `target/`. |
 
-## On optimality
+## A touch of optimality
 
 Following the classical example (here borrowed from [^lamping]):
 
