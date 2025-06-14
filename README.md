@@ -4,13 +4,33 @@
 
 _Optiscope_ is a Lévy-optimal implementation of the pure lambda calculus enriched with native function calls, if-then-else expressions, & a fixed-point operator.
 
-Being the first public implementation of [Lambdascope] [^lambdascope] written in portable C99, it is also the first interaction net reducer capable of calling user-provided functions at native speed. As such, this combination allows one to interleave lazy evaluation with side effects, without resorting to external machinery like monads or algebraic effect handlers.
+Being the first public implementation of [Lambdascope] [^lambdascope] written in portable C99, it is also the first interaction net reducer capable of calling user-provided functions at native speed. As such, this combination allows one to interleave lazy evaluation with side effects, without resorting to external machinery like monads or algebraic effect handlers. In potential, Optiscope could stand as an optimal runtime system for a full-fledged lazy functional programming language, such as Haskell.
 
 [Lambdascope]: https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=61042374787bf6514706b49a5a4f0b74996979a0
 
 In what follows, we briefly explaine what it means for reduction to be Lévy-optimal, & then describe our results.
 
 _To every person to informe me of a semantic bug, I will pay $1000 in Bitcoin. More details [here](#bounty-policy)._
+
+## Installation
+
+```
+$ git clone https://github.com/etiams/optiscope.git
+$ cd optiscope
+$ ./command/test.sh
+```
+
+See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
+
+The shell commands are outlined in the following table:
+
+| Command | Description |
+|-----------|-------------|
+| `./command/test.sh` | Run the test suite `tests.c`. |
+| `./command/example.sh <example-name>` | Run the example `examples/<example-name>`. |
+| `./command/bench.sh` | Run all the benchmarks in `benchmarks/`. |
+| `./command/graphviz-state.sh` | Visualize `target/state.dot` as `target/state.dot.svg`. |
+| `./command/graphvis-all.sh` | Visualize all the `.dot` files in `target/`. |
 
 ## On optimality
 
@@ -306,7 +326,9 @@ The onely difference between Optiscope and Haskell-style monads is that, while m
 
 ## Optiscope inside Optiscope
 
-Another interesting example, although perhaps not that practical, is to execute an optimal machine _from within_ an optimal machine:
+Another interesting example, although perhaps not that practical, is to execute an optimal machine [_from within_] an optimal machine:
+
+[_from within_]: examples/optiscope-inside-optiscope.c
 
 ```c
 // Includes omitted...
@@ -391,20 +413,6 @@ Let us break down this example step-by-step:
  1. Finally, `optiscope_inside_optiscope` launches the algorithm on a Scott list `[1, 2, 3, 4, 5]`, eventually obtaining the result `cell[153]`, as evidenced in the tests.
 
 That is, inside user-provided functions we can essentially doe anything we want, including running Optiscope itself! Moreover, as the memory pools are global to the whole program, the higher-level & low-level optimal machines **share the same memory regions** during execution. Whether this technique has practical applications is a topic of future research.
-
-## API
-
-See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
-
-## Commands
-
-| Usage | Description |
-|-----------|-------------|
-| `./command/test.sh` | Run the test suite `tests.c`. |
-| `./command/example.sh <example-name>` | Run the example `examples/<example-name>`. |
-| `./command/bench.sh` | Run all the benchmarks in `benchmarks/`. |
-| `./command/graphviz-state.sh` | Visualize `target/state.dot` as `target/state.dot.svg`. |
-| `./command/graphvis-all.sh` | Visualize all the `.dot` files in `target/`. |
 
 ## Benchmarks
 
