@@ -478,7 +478,7 @@ Let us break down this example step-by-step:
  1. Next, the `scott_factorial_sum` function computes a _factorial sum_ of a Scott-encoded list. However, instead of directly computing the factorial, we call `inner_factorial`, thereby delegating the work to a lower-level optimal machine.
  1. Finally, `optiscope_inside_optiscope` launches the algorithm on a Scott list `[1, 2, 3, 4, 5]`, eventually obtaining the result `cell[153]`, as evidenced in the tests.
 
-That is, inside user-provided functions we can essentially doe anything we want, including running Optiscope itself! Moreover, as the memory pools are global to the whole program, the higher-level & low-level optimal machines **share the same memory regions** during execution. Whether this technique has practical applications is a topic of future research.
+That is, inside user-provided functions we can essentially doe anything we want, including running Optiscope itself! Moreover, as the memory pools are global to the whole program, the high-level & low-level optimal machines **share the same memory regions** during execution. Whether this technique has practical applications is a topic of future research.
 
 ## Benchmarks
 
