@@ -309,7 +309,19 @@ The onely difference between Optiscope and Haskell-style monads is that, while m
 Another interesting example, although perhaps not that practical, is to execute an optimal machine _from within_ an optimal machine:
 
 ```c
-// `is_zero`, `multiply`, `minus_one`, `add`, & `scott_list_1_2_3_4_5` are defined earlier.
+// Includes omitted...
+
+static uint64_t is_zero(const uint64_t x) { return 0 == x; }
+
+static uint64_t minus_one(const uint64_t x) { return x - 1; }
+
+static uint64_t add(const uint64_t x, const uint64_t y)
+    { return x + y; }
+
+static uint64_t multiply(const uint64_t x, const uint64_t y)
+    { return x * y; }
+
+// `scott_nil`, `scott_cons`, & `scott_list_1_2_3_4_5`.
 
 static struct lambda_term *
 fix_factorial_function(void) {

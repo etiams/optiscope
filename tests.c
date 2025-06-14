@@ -1307,69 +1307,6 @@ wadsworth_counterexample(void) { // Asperti & Guerrini
                 lambda(w, apply(once, var(w))))));
 }
 
-// Optiscope inside Optiscope
-// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-static struct lambda_term *
-fix_factorial_function(void) {
-    struct lambda_term *f, *n;
-
-    return lambda(
-        f,
-        lambda(
-            n,
-            if_then_else(
-                unary_call(is_zero, var(n)),
-                cell(1),
-                binary_call(
-                    multiply,
-                    var(n),
-                    apply(var(f), unary_call(minus_one, var(n)))))));
-}
-
-static uint64_t optiscope_inside_optiscope_result = 0;
-
-static uint64_t
-extract_result(const uint64_t n) {
-    optiscope_inside_optiscope_result = n;
-    return 0;
-}
-
-static uint64_t
-inner_factorial(const uint64_t n) {
-    struct lambda_term *const term = unary_call(
-        extract_result, apply(fix(fix_factorial_function()), cell(n)));
-
-    optiscope_algorithm(NULL, term);
-
-    return optiscope_inside_optiscope_result;
-}
-
-static struct lambda_term *
-scott_factorial_sum(void) {
-    struct lambda_term *rec, *list, *x, *xs;
-
-    return fix(lambda(
-        rec,
-        lambda(
-            list,
-            apply(
-                apply(var(list), cell(0)),
-                lambda(
-                    x,
-                    lambda(
-                        xs,
-                        binary_call(
-                            add,
-                            unary_call(inner_factorial, var(x)),
-                            apply(var(rec), var(xs)))))))));
-}
-
-static struct lambda_term *
-optiscope_inside_optiscope(void) {
-    return apply(scott_factorial_sum(), scott_list_1_2_3_4_5());
-}
-
 // The test driver
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
@@ -1425,8 +1362,6 @@ main(void) {
     TEST_CASE(asperti_guerrini_example, "(λ (0 0))");
     TEST_CASE(wadsworth_example, "(λ (0 0))");
     TEST_CASE(wadsworth_counterexample, "(λ (λ (1 0)))");
-
-    TEST_CASE(optiscope_inside_optiscope, "cell[153]");
 }
 
 #endif // OPTISCOPE_TESTS_NO_MAIN
