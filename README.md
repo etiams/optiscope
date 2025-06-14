@@ -2,7 +2,7 @@
 
 **🚧 WORK IN PROGRESS**
 
-_Optiscope_ is a Lévy-optimal implementation of the pure lambda calculus enriched with native function calls, if-then-else expressions, & a fixed-point operator.
+_Optiscope_ is an experimental Lévy-optimal implementation of the pure lambda calculus enriched with native function calls, if-then-else expressions, & a fixed-point operator.
 
 Being the first public implementation of [Lambdascope] [^lambdascope] written in portable C99, it is also the first interaction net reducer capable of calling user-provided functions at native speed. As such, this combination allows one to interleave lazy evaluation with side effects, without resorting to external machinery like monads or algebraic effect handlers. In potential, Optiscope could stand as an optimal runtime system for a full-fledged lazy functional programming language, such as Haskell.
 
