@@ -20,6 +20,8 @@ $ cd optiscope
 $ ./command/test.sh
 ```
 
+## Usage
+
 See [`optiscope.h`](optiscope.h) for the user interface & [`tests.c`](tests.c) for the comprehensive usage examples with different data encodings.
 
 The shell commands are outlined in the following table:
@@ -191,7 +193,7 @@ Optiscope operates in **five discrete phases**: (1) weak reduction, (2) full red
 
 Mathematically, our implementation follows the Lambdascope formalism [^lambdascope], which is perhaps the simplest (among many others) proposal to optimality, involving onely six types of nodes & three rule schemes. As here we make no attempt at giving optimality a formal treatment, an interested reader is invited to read the paper for more details & ask any related questions in the issues.
 
-## Usage
+## Side-effectfull evaluation
 
 In this section, we demonstrate how to achieve side effects & manual resource management in the interaction net framework.
 
