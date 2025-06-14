@@ -193,6 +193,68 @@ Optiscope operates in **five discrete phases**: (1) weak reduction, (2) full red
 
 Mathematically, our implementation follows the Lambdascope formalism [^lambdascope], which is perhaps the simplest (among many others) proposal to optimality, involving onely six types of nodes & three rule schemes. As here we make no attempt at giving optimality a formal treatment, an interested reader is invited to read the paper for more details & ask any related questions in the issues.
 
+## Evaluation by interaction
+
+Consider the following example from [`examples/lamping-example.c`]:
+
+[`examples/lamping-example.c`]: examples/lamping-example.c
+
+```c
+#include "../optiscope.h"
+
+static struct lambda_term *
+lamping_example(void) {
+    struct lambda_term *g, *x, *h, *f, *z, *w, *y;
+
+    return apply(
+        lambda(g, apply(var(g), apply(var(g), lambda(x, var(x))))),
+        lambda(
+            h,
+            apply(
+                lambda(f, apply(var(f), apply(var(f), lambda(z, var(z))))),
+                lambda(w, apply(var(h), apply(var(w), lambda(y, var(y))))))));
+}
+
+int
+main(void) {
+    optiscope_open_pools();
+    optiscope_algorithm(stdout, lamping_example());
+    puts("");
+    optiscope_close_pools();
+}
+```
+
+This is the exact encoding of the following example from the optimality section:
+
+```
+((λg. (g (g (λx. x))))
+ (λh. ((λf. (f (f (λz. z))))
+       (λw. (h (w (λy. y)))))))
+```
+
+By typing `./command/example lamping-example` from the root directory, we can see the output:
+
+```
+$ ./command/example.sh lamping-example
+(λ 0)
+```
+
+The whole term evaluates to the identity lambda, as expected.
+
+In Optiscope, it is possible to observe _all the interaction steps_ involved in computing the finall result. However, since there are so many interactions involved in this example, we will onely focus on the first ten & the last ten ones. In order to ask Optiscope to draw an SVG file after each interaction, insert the following lines into `optiscope.h`:
+
+```c
+#define OPTISCOPE_ENABLE_TRACING
+#define OPTISCOPE_ENABLE_STEP_BY_STEP
+#define OPTISCOPE_ENABLE_GRAPHVIZ
+```
+
+The visualization will then be as follows:
+
+<div align="center">
+  <img src="media/animation.gif" width="800px" alt="Lamping example" />
+</div>
+
 ## Side-effectfull evaluation
 
 In this section, we demonstrate how to achieve side effects & manual resource management in the interaction net framework.
