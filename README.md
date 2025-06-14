@@ -825,6 +825,12 @@ Now, there are two possible avenues to mitigate the performance issue. The first
 
 [Graphviz]: https://graphviz.org/
 
+## Acknowledgements
+
+Thanks to Marvin Borner ([@marvinborner]) for usefull discussions about optimality and side effectfull computation, as well as revealing a crucial memory management bug when activating both active scopes.
+
+[@marvinborner]: https://github.com/marvinborner
+
 ## Relevant research
 
  - Asperti, Andrea, Cecilia Giovannetti, and Andrea Naletto. "The Bologna optimal higher-order machine." Journal of Functional Programming 6.6 (1996): 763-810.
