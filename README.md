@@ -277,16 +277,32 @@ Without monads or effect handlers, we have just done some input/output intersper
 
 Let us see how this example works step-by-step:
  1. We enclose the whole program in `fix`, which is our built-in fixed-point combinator. The `rec` parameter stands for the current lambda function to be invoked recursively.
- 1. Next, we accept a parameter `token`, which stands for an _effect token_. Its purpose will be clear later.
- 1. The first thing we do in the function body is calling `my_puts`. Here, `my_puts` is an ordinary C function that accepts `s`, the string to be printed, & `token`. By calling `perform`, we _force_ the evaluation of `my_puts` to be performed _right now_.
- 1. We bind the call of `my_gets` to the variable `s`. Here, `my_gets` will not be actually executed, because binding is lazy in Optiscope.
- 1. We proceed with calling `my_strcmp`, thereby forcing `s`. If the string is `"quit"`, we manually call `my_free` and finish the evaluation. We doe not need to force `my_free` here, because it appears in a tail call position.
- 1. If the input string is not `"quit"`, we force the evaluation of `is_palindrome` with its both branches.
+ 1. Next, we accept the parameter `token`, which stands for an _effect token_. Its purpose will be clear later.
+ 1. The first thing we doe in the function body is calling `my_puts`. Here, `my_puts` is an ordinary C function that accepts `s`, the string to be printed, & `token`. By calling `perform`, we _force_ the evaluation of `my_puts` to be performed _right now_.
+ 1. We bind the call of `my_gets` to the variable `s`. Here, the execution of `my_gets` will also be forced due to `bind`; the rest of the code will deal with already evaluated `s`.
+ 1. We proceed with calling `my_strcmp`. If the string is `"quit"`, we manually call `my_free` and finish the evaluation. We doe not need to force `my_free` here, because it appears in a tail call position.
+ 1. If the input string is not `"quit"`, we force the evaluation of `is_palindrome` with its both (side-effectfull) branches.
  1. We finally force `my_free` to ensure no memory leaks occur, & proceed with a recursive call.
 
 From the optimality section, you remember that optimal reduction shares all explicit & virtual redexes -- if they are constructed "in the same way". This is the exact reason why we need to passe the `token` parameter to every side-effectfull function: we trick Optiscope to make it think that, given that the side-effecting redexes are constructed differently, it must repeatedly re-evaluate them each time it focuses on them; otherwise, it would just "cache" their results, once they are executed for the first time. Since the reduction strategy is fixed, it is safe to rely on Optiscope performing side effects in the exact order we wrote them.
 
 Finally, notice that `my_strcmp` & `is_palindrome` are both pure functions used as mere program subroutines. In fact, we use pure native functions quite extensively in [`tests.c`](tests.c), which allowed us to test Optiscope on a variety of classical algorithms, such as functional quicksort & the Ackermann function. Naturally, this opens another path for investigation: what if we delegate some CPU-bound computation to native functions & ask the optimal machine to efficiently share those computations?
+
+## Rules for side effects
+
+In this section, we give well-formednesse rules for side-effectfull computations in Optiscope.
+
+We take our inspiration from the use of monads in call-by-need functional programming languages, such as Haskell. The intuition is as follows: whenever we would write `_ <- action; k` in Haskell, we write `perform(action, k)` in Optiscope; whenever we would write `x <- comp; k` in Haskell, we write `bind(x, action, k)` in Optiscope; whenever we would end execution with `action` in Haskell (e.g., `putStrLn "goodbye"` at the end of do-notation), we doe the same in Optiscope.
+
+We write `comp/pure` for pure computations, i.e., those not conteyning `bind` or `perform`, & `comp/impure` for computations involving side effects. The formal rules for impure computations are as follows:
+ - If `f` is a side-effectfull function, then `unary_call(f, token)/impure`, where `token` is a cell passed downwards.
+ - If `f` is a side-effectfull function & `rand/impure`, then `binary_call(f, rand, token)/impure`, where `token` is a cell passed downwards.
+ - If `action/impure` & `k/impure`, then `perform(action, k)/impure`.
+ - If `action/impure` & `k/impure` , then `bind(x, action, k)/impure`.
+ - If `action/impure` & `if_then/impure` & `if_else/impure`, then `if_then_else(action, if_then, if_else)/impure`.
+ - If `comp/pure`, then `comp/impure`.
+
+The onely difference between Optiscope and Haskell-style monads is that, while monads are first-class citizens in Haskell, they merely manifest themselves as well-formednesse rules in Optiscope.
 
 ## Optiscope inside Optiscope
 

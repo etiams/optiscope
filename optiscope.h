@@ -126,8 +126,9 @@ fix(restrict LambdaTerm f);
 extern LambdaTerm
 perform(restrict LambdaTerm action, restrict LambdaTerm k);
 
-/// Binds the result of `action` to the variable `x` & proceeds with `k`.
-#define bind(x, action, k) apply(lambda((x), (k)), (action))
+/// Forces the execution of `action`, binds the result to `x`, & continues with
+/// `k`.
+#define bind(x, action, k) apply(lambda((x), perform((x), (k))), (action))
 
 /// Run the optimal reduction algorithm on the given `term`. The `term` object
 /// will be deallocated automatically.
