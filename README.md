@@ -252,7 +252,7 @@ In Optiscope, it is possible to observe _all the interaction steps_ involved in 
 The visualization will then be as follows:
 
 <div align="center">
-  <img src="media/animation.gif" width="800px" alt="Lamping example" />
+  <img src="media/animation.gif" width="680px" alt="Lamping example" />
 </div>
 
 ## Side-effectfull evaluation
