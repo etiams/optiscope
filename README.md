@@ -177,7 +177,7 @@ In practice, this is how the complete reduction of Church numeral 2^2 looks like
 
 <div align="center">
   <a href="https://github.com/user-attachments/assets/39cc642d-e442-4035-b151-1e1f1225aa91">
-    <img src="media/2-power-2-preview.png" height="680px" alt="2^2 Church numeral example" />
+    <img src="media/2-power-2-preview.png" width="350px" alt="2^2 Church numeral example" />
   </a>
 </div>
 
@@ -254,7 +254,7 @@ In Optiscope, it is possible to observe _all the interaction steps_ involved in 
 The visualization will then be as follows:
 
 <div align="center">
-  <img src="media/animation.gif" width="650px" alt="Lamping example" />
+  <img src="media/animation.gif" width="680px" alt="Lamping example" />
 </div>
 
 ## Side-effectfull evaluation
