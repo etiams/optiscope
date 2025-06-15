@@ -173,10 +173,12 @@ After the outermost reduction `((λx. ...) (λw. ...))` is complete, the two occ
 
 _Optimal evaluation_ (in Lévy's sense [^levy-thesis] [^levy-optimal-reductions]) is a technique of reducing lambda terms to their normal forms, in practice done through so-called _interaction nets_, which are graphs of special symbols & unconditionally local rewriting rules. To reduce a lambda term, an optimal evaluator (1) translates the term to an interaction net, (2) applies a number of interactions (rewritings) in an implementation-defined order, & (3) when no more rules can be applied, translates the resulting net back to the syntactical universe of the lambda calculus. Unlike the other discussed techniques, it performes no copying whatsoever, thereby achieving _maximal sharing_ of redexes.
 
-In practice, this is how an interaction net looks like:
+In practice, this is how the complete reduction of Church numeral 2^2 looks like:
 
 <div align="center">
-  <img src="media/inet-example.svg" width="800px" alt="Scott tree sum example" />
+  <a href="https://github.com/user-attachments/assets/39cc642d-e442-4035-b151-1e1f1225aa91">
+    <img src="media/2-power-2-preview.png" height="800px" alt="2^2 Church numeral example" />
+  </a>
 </div>
 
 (Green nodes are "active" nodes, i.e., those that interact with each other.)
