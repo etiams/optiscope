@@ -2922,6 +2922,7 @@ struct lambda_data {
     uint64_t **dup_ports;   // the pointer to the next duplicator tree
                             // port; dynamically assigned
     uint64_t lvl;           // the de Bruijn level; dynamically assigned
+    bool is_identity;
 };
 
 struct unary_call_data {
@@ -2984,6 +2985,7 @@ prelambda(void) {
     term->data.lambda.binder_usages = 0;
     term->data.lambda.dup_ports = NULL;
     term->data.lambda.lvl = 0;
+    term->data.lambda.is_identity = false;
 
     return term;
 }
@@ -2992,8 +2994,12 @@ extern LambdaTerm
 link_lambda_body(
     const restrict LambdaTerm binder, const restrict LambdaTerm body) {
     assert(binder), assert(body);
+    assert(LAMBDA_TERM_LAMBDA == binder->ty);
 
-    binder->data.lambda.body = body;
+    struct lambda_data *const lambda = &binder->data.lambda;
+    lambda->is_identity =
+        LAMBDA_TERM_VAR == body->ty && lambda == body->data.var;
+    lambda->body = body;
 
     return binder;
 }
@@ -3095,25 +3101,10 @@ perform(const restrict LambdaTerm action, const restrict LambdaTerm k) {
 // Conversion from a lambda term
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-COMPILER_PURE COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1) //
-inline static uint64_t
-is_identity_lambda(struct lambda_term *const restrict term) {
-    assert(term);
+#define BUILDER_ATTRS                                                          \
+    COMPILER_RETURNS_NONNULL COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1, 2)
 
-    if (LAMBDA_TERM_LAMBDA != term->ty) { return false; }
-
-    struct lambda_data *const tlambda = &term->data.lambda;
-    struct lambda_term *const body = term->data.lambda.body;
-    XASSERT(tlambda);
-    XASSERT(body);
-
-    return LAMBDA_TERM_VAR == body->ty
-               ? tlambda ==
-                     body->data.var /* the body directly points to the binder */
-               : false /* cannot directly point to the binder */;
-}
-
-COMPILER_RETURNS_NONNULL COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1, 2) //
+BUILDER_ATTRS
 static uint64_t *
 build_delimiter_sequence(
     struct context *const restrict graph,
@@ -3137,7 +3128,7 @@ build_delimiter_sequence(
     return result;
 }
 
-COMPILER_RETURNS_NONNULL COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1, 2) //
+BUILDER_ATTRS
 static uint64_t **
 build_duplicator_tree(
     struct context *const restrict graph,
@@ -3165,6 +3156,8 @@ build_duplicator_tree(
 
     return ports;
 }
+
+#undef BUILDER_ATTRS
 
 COMPILER_CONST COMPILER_WARN_UNUSED_RESULT //
 inline static uint64_t
@@ -3202,7 +3195,7 @@ of_lambda_term(
         XASSERT(tlambda);
         XASSERT(body);
 
-        if (is_identity_lambda(term)) {
+        if (tlambda->is_identity) {
             // clang-format off
             const struct node lambda = alloc_node(graph, SYMBOL_IDENTITY_LAMBDA);
             // clang-format on
