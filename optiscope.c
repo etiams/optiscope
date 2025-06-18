@@ -343,8 +343,8 @@ STATIC_ASSERT(CHAR_BIT == 8, "The byte width must be 8 bits!");
 STATIC_ASSERT(sizeof(uint64_t *) == sizeof(uint64_t), "The machine word width must be 64 bits!");
 STATIC_ASSERT(sizeof(uint64_t (*)(uint64_t value)) <= sizeof(uint64_t), "Function handles must fit in `uint64_t`!");
 
-#define MAX_REGULAR_SYMBOL   UINT64_C(13)
-#define INDEX_RANGE          UINT64_C(9223372036854775801)
+#define MAX_REGULAR_SYMBOL   UINT64_C(15)
+#define INDEX_RANGE          UINT64_C(9223372036854775800)
 #define MAX_DUPLICATOR_INDEX (MAX_REGULAR_SYMBOL + INDEX_RANGE)
 #define MAX_DELIMITER_INDEX  (MAX_DUPLICATOR_INDEX + INDEX_RANGE)
 #define MAX_PORTS            UINT64_C(4)
@@ -365,14 +365,19 @@ STATIC_ASSERT(UINT64_MAX == MAX_DELIMITER_INDEX, "Every bit of a symbol must be 
 #define SYMBOL_IF_THEN_ELSE    UINT64_C(9)
 #define SYMBOL_FIX             UINT64_C(10)
 #define SYMBOL_PERFORM         UINT64_C(11)
-#define SYMBOL_IDENTITY_LAMBDA UINT64_C(12)
-#define SYMBOL_GC_LAMBDA       UINT64_C(13)
+#define SYMBOL_IDENTITY_LAMBDA UINT64_C(12) // the identity lambda
+#define SYMBOL_GC_LAMBDA       UINT64_C(13) // a lambda discarding its parameter
+#define SYMBOL_LAMBDA_C        UINT64_C(14) // a closed lambda
+#define SYMBOL_UNUSED          UINT64_C(15)
 #define SYMBOL_DUPLICATOR(i)   (MAX_REGULAR_SYMBOL + 1 + (i))
 #define SYMBOL_DELIMITER(i)    (MAX_DUPLICATOR_INDEX + 1 + (i))
 
 #define IS_ANY_LAMBDA(symbol)                                                  \
     (SYMBOL_LAMBDA == (symbol) || SYMBOL_IDENTITY_LAMBDA == (symbol) ||        \
-     SYMBOL_GC_LAMBDA == (symbol))
+     SYMBOL_GC_LAMBDA == (symbol) || SYMBOL_LAMBDA_C == (symbol))
+
+#define IS_RELEVANT_LAMBDA(symbol)                                             \
+    (SYMBOL_LAMBDA == (symbol) || SYMBOL_LAMBDA_C == (symbol))
 
 // clang-format off
 #define IS_DUPLICATOR(symbol) \
@@ -425,6 +430,7 @@ ports_count(const uint64_t symbol) {
     case SYMBOL_LAMBDA:
     case SYMBOL_BINARY_CALL:
     case SYMBOL_PERFORM:
+    case SYMBOL_LAMBDA_C:
     duplicator:
         return 3;
     case SYMBOL_IF_THEN_ELSE: //
@@ -517,6 +523,7 @@ print_symbol(const uint64_t symbol) {
     case SYMBOL_PERFORM: sprintf(buffer, "perform"); break;
     case SYMBOL_IDENTITY_LAMBDA: sprintf(buffer, "identity"); break;
     case SYMBOL_GC_LAMBDA: sprintf(buffer, "λ◉"); break;
+    case SYMBOL_LAMBDA_C: sprintf(buffer, "λc"); break;
     default:
         if (symbol <= MAX_DUPLICATOR_INDEX) goto duplicator;
         else if (symbol <= MAX_DELIMITER_INDEX) goto delimiter;
@@ -791,6 +798,7 @@ POOL_ALLOCATOR(fix, sizeof(uint64_t) * 3)
 POOL_ALLOCATOR(perform, sizeof(uint64_t) * 4)
 POOL_ALLOCATOR(identity_lambda, sizeof(uint64_t) * 2)
 POOL_ALLOCATOR(gc_lambda, sizeof(uint64_t) * 3)
+POOL_ALLOCATOR(lambda_c, sizeof(uint64_t) * 4)
 
 #define ALLOC_POOL_OBJECT(pool_name) pool_name##_alloc(pool_name)
 #define FREE_POOL_OBJECT(pool_name, object)                                    \
@@ -811,7 +819,8 @@ POOL_ALLOCATOR(gc_lambda, sizeof(uint64_t) * 3)
     X(fix_pool)                                                                \
     X(perform_pool)                                                            \
     X(identity_lambda_pool)                                                    \
-    X(gc_lambda_pool)
+    X(gc_lambda_pool)                                                          \
+    X(lambda_c_pool)
 
 #define X(pool_name) static struct pool_name *pool_name = NULL;
 POOLS
@@ -1300,6 +1309,8 @@ alloc_node_from(
         ports = ALLOC_POOL_OBJECT(identity_lambda_pool); goto set_ports_0;
     case SYMBOL_GC_LAMBDA:
         ports = ALLOC_POOL_OBJECT(gc_lambda_pool); goto set_ports_1;
+    case SYMBOL_LAMBDA_C:
+        ports = ALLOC_POOL_OBJECT(lambda_c_pool); goto set_ports_2;
     duplicator:
         ports = ALLOC_POOL_OBJECT(duplicator_pool); goto set_ports_2;
     delimiter:
@@ -1372,6 +1383,7 @@ free_node(const struct node node) {
         FREE_POOL_OBJECT(identity_lambda_pool, p);
         break;
     case SYMBOL_GC_LAMBDA: FREE_POOL_OBJECT(gc_lambda_pool, p); break;
+    case SYMBOL_LAMBDA_C: FREE_POOL_OBJECT(lambda_c_pool, p); break;
     default:
         if (symbol <= MAX_DUPLICATOR_INDEX) goto duplicator;
         else if (symbol <= MAX_DELIMITER_INDEX) goto delimiter;
@@ -1458,6 +1470,7 @@ graphviz_edge_label(
         }
         break;
     case SYMBOL_LAMBDA:
+    case SYMBOL_LAMBDA_C:
         switch (i) {
         case 0: sprintf(buffer, "\\#%" PRIu8, i); break;
         case 1: sprintf(buffer, "binder (\\#%" PRIu8 ")", i); break;
@@ -1483,6 +1496,7 @@ graphviz_edge_weight(
         if ((is_reading_back ? 1 : 2) == i) return 5; // rand
         break;
     case SYMBOL_LAMBDA:
+    case SYMBOL_LAMBDA_C:
         if (2 == i) return 3; // body
         break;
     default:
@@ -1516,6 +1530,7 @@ graphviz_edge_tailport(
         else if ((is_reading_back ? 1 : 2) == i) return "e";
         else COMPILER_UNREACHABLE();
     case SYMBOL_LAMBDA:
+    case SYMBOL_LAMBDA_C:
         switch (i) {
         case 0: return "n";
         case 1: return "e";
@@ -1796,6 +1811,7 @@ collect_garbage(
             }
             break;
         case SYMBOL_LAMBDA:
+        case SYMBOL_LAMBDA_C:
             switch (i) {
             case 0: FOLLOW(f.ports[1]), FOLLOW(f.ports[2]), COLLECT(f); break;
             case 2: FOLLOW(f.ports[0]), FOLLOW(f.ports[1]), COLLECT(f); break;
@@ -1938,7 +1954,7 @@ inline static bool
 is_beta(const struct node f, const struct node g) {
     XASSERT(f.ports), XASSERT(g.ports);
 
-    return SYMBOL_APPLICATOR == f.ports[-1] && SYMBOL_LAMBDA == g.ports[-1];
+    return SYMBOL_APPLICATOR == f.ports[-1] && IS_RELEVANT_LAMBDA(g.ports[-1]);
 }
 
 #ifndef NDEBUG
@@ -2060,7 +2076,7 @@ assert_fix(
     assert(f.ports), assert(g.ports);
     assert(is_interaction(f, g));
     assert(SYMBOL_FIX == f.ports[-1]);
-    assert(SYMBOL_LAMBDA == g.ports[-1]);
+    assert(IS_RELEVANT_LAMBDA(g.ports[-1]));
 }
 
 static void
@@ -2253,7 +2269,10 @@ RULE_DEFINITION(beta, graph, f, g) {
 
     uint64_t *const binder_port = DECODE_ADDRESS(g.ports[1]), //
         *const rand_port = DECODE_ADDRESS(f.ports[2]);
-    if (!try_unshare(graph, binder_port, node_of_port(rand_port))) {
+    const struct node rand = node_of_port(rand_port);
+    if (SYMBOL_LAMBDA_C == rand.ports[-1]) {
+        connect_ports(binder_port, rand_port);
+    } else if (!try_unshare(graph, binder_port, rand)) {
         const struct node rhs =
             alloc_node(graph, SYMBOL_DELIMITER(UINT64_C(0)));
         connect_ports(&rhs.ports[0], rand_port);
@@ -2706,9 +2725,6 @@ RULE_DEFINITION(commute_delim_delim, graph, f, g) {
 TYPE_CHECK_RULE(commute_delim_delim);
 
 RULE_DEFINITION(commute_lambda_delim, graph, f, g) {
-    assert(graph);
-    XASSERT(f.ports), XASSERT(g.ports);
-
     g.ports[-1] = bump_index(g.ports[-1]);
     commute_3_2(graph, f, g);
 }
@@ -2716,37 +2732,13 @@ RULE_DEFINITION(commute_lambda_delim, graph, f, g) {
 TYPE_CHECK_RULE(commute_lambda_delim);
 
 RULE_DEFINITION(commute_lambda_dup, graph, f, g) {
-    assert(graph);
-    XASSERT(f.ports), XASSERT(g.ports);
-
     g.ports[-1] = bump_index(g.ports[-1]);
     commute_3_3(graph, f, g);
 }
 
 TYPE_CHECK_RULE(commute_lambda_dup);
 
-RULE_DEFINITION(commute_identity_lambda_delim, graph, f, g) {
-    assert(graph);
-    XASSERT(f.ports), XASSERT(g.ports);
-
-    g.ports[-1] = bump_index(g.ports[-1]);
-    commute_1_2(graph, f, g);
-}
-
-TYPE_CHECK_RULE(commute_identity_lambda_delim);
-
-RULE_DEFINITION(commute_identity_lambda_dup, graph, f, g) {
-    assert(graph);
-    XASSERT(f.ports), XASSERT(g.ports);
-
-    g.ports[-1] = bump_index(g.ports[-1]);
-    commute_1_3(graph, f, g);
-}
-
 RULE_DEFINITION(commute_gc_lambda_delim, graph, f, g) {
-    assert(graph);
-    XASSERT(f.ports), XASSERT(g.ports);
-
     g.ports[-1] = bump_index(g.ports[-1]);
     commute_2_2(graph, f, g);
 }
@@ -2754,14 +2746,37 @@ RULE_DEFINITION(commute_gc_lambda_delim, graph, f, g) {
 TYPE_CHECK_RULE(commute_gc_lambda_delim);
 
 RULE_DEFINITION(commute_gc_lambda_dup, graph, f, g) {
-    assert(graph);
-    XASSERT(f.ports), XASSERT(g.ports);
-
     g.ports[-1] = bump_index(g.ports[-1]);
     commute_2_3(graph, f, g);
 }
 
 TYPE_CHECK_RULE(commute_gc_lambda_dup);
+
+// An excerpt from "8.1. Optimal vs. efficient":
+// > For instance, extruding a scope over a closed λ-term costs time linear in
+//   the size of the term in our implementation, whereas one observes that in
+//   such cases it would be safe to simply remove the scope.
+RULE_DEFINITION(commute_lambda_c_delim, graph, f, g) {
+#ifndef NDEBUG
+    assert(graph);
+#else
+    (void)graph;
+#endif
+    XASSERT(f.ports), XASSERT(g.ports);
+
+    connect_ports(&f.ports[0], DECODE_ADDRESS(g.ports[1]));
+
+    free_node(g);
+}
+
+TYPE_CHECK_RULE(commute_lambda_c_delim);
+
+RULE_DEFINITION(commute_lambda_c_dup, graph, f, g) {
+    g.ports[-1] = bump_index(g.ports[-1]);
+    commute_3_3(graph, f, g);
+}
+
+TYPE_CHECK_RULE(commute_lambda_c_dup);
 
 #undef TYPE_CHECK_RULE
 
@@ -2863,11 +2878,11 @@ loop_cut(struct context *const restrict graph) {
 
     graph->phase = PHASE_LOOP_CUT;
 
-    CONSUME_LIST (
-        iter, //
-        iterate_nodes(graph, SYMBOL_RANGE_1(SYMBOL_LAMBDA))) {
+    CONSUME_LIST (iter, iterate_nodes(graph, SYMBOL_FULL_RANGE)) {
         const struct node node = iter->node;
         XASSERT(node.ports);
+
+        if (!IS_RELEVANT_LAMBDA(node.ports[-1])) { continue; }
         PROCESS_NODE_IN_PHASE(graph, node);
 
         struct node side_eraser = alloc_node(graph, SYMBOL_ERASER);
@@ -2900,8 +2915,10 @@ to_lambda_string(
         fprintf(stream, ")");
         return;
     case SYMBOL_LAMBDA:
-    case SYMBOL_GC_LAMBDA: {
-        const uint8_t body_port_idx = (SYMBOL_LAMBDA == node.ports[-1]) ? 2 : 1;
+    case SYMBOL_GC_LAMBDA:
+    case SYMBOL_LAMBDA_C: {
+        const uint8_t body_port_idx =
+            IS_RELEVANT_LAMBDA(node.ports[-1]) ? 2 : 1;
         fprintf(stream, "(λ ");
         to_lambda_string(stream, i, follow_port(&node.ports[body_port_idx]));
         fprintf(stream, ")");
@@ -3003,6 +3020,7 @@ union lambda_term_data {
 struct lambda_term {
     enum lambda_term_type ty;
     union lambda_term_data data;
+    uint64_t nfree_vars;
 };
 
 extern LambdaTerm
@@ -3013,6 +3031,7 @@ apply(const restrict LambdaTerm rator, const restrict LambdaTerm rand) {
     term->ty = LAMBDA_TERM_APPLY;
     term->data.apply.rator = rator;
     term->data.apply.rand = rand;
+    rator->nfree_vars = rator->nfree_vars + rand->nfree_vars;
 
     return term;
 }
@@ -3034,6 +3053,8 @@ link_lambda_body(
     assert(LAMBDA_TERM_LAMBDA == binder->ty);
 
     binder->data.lambda->body = body;
+    binder->nfree_vars =
+        body->nfree_vars - (binder->data.lambda->nusages > 0 ? 1 : 0);
 
     return binder;
 }
@@ -3046,6 +3067,7 @@ var(const restrict LambdaTerm binder) {
     struct lambda_term *const term = xmalloc(sizeof *term);
     term->ty = LAMBDA_TERM_VAR;
     term->data.var = &binder->data.lambda;
+    term->nfree_vars = 1;
 
     binder->data.lambda->nusages++;
     binder->data.lambda->usage = term;
@@ -3058,6 +3080,7 @@ cell(const uint64_t value) {
     struct lambda_term *const term = xmalloc(sizeof *term);
     term->ty = LAMBDA_TERM_CELL;
     term->data.cell = value;
+    term->nfree_vars = 0;
 
     return term;
 }
@@ -3072,6 +3095,7 @@ unary_call(
     term->ty = LAMBDA_TERM_UNARY_CALL;
     term->data.u_call.function = function;
     term->data.u_call.rand = rand;
+    rand->nfree_vars = rand->nfree_vars;
 
     return term;
 }
@@ -3089,6 +3113,7 @@ binary_call(
     term->data.b_call.function = function;
     term->data.b_call.lhs = lhs;
     term->data.b_call.rhs = rhs;
+    lhs->nfree_vars = lhs->nfree_vars + rhs->nfree_vars;
 
     return term;
 }
@@ -3106,6 +3131,8 @@ if_then_else(
     term->data.ite.condition = condition;
     term->data.ite.if_then = if_then;
     term->data.ite.if_else = if_else;
+    condition->nfree_vars =
+        condition->nfree_vars + if_then->nfree_vars + if_else->nfree_vars;
 
     return term;
 }
@@ -3117,6 +3144,7 @@ fix(const restrict LambdaTerm f) {
     struct lambda_term *const term = xmalloc(sizeof *term);
     term->ty = LAMBDA_TERM_FIX;
     term->data.fix.f = f;
+    term->nfree_vars = f->nfree_vars;
 
     return term;
 }
@@ -3129,6 +3157,7 @@ perform(const restrict LambdaTerm action, const restrict LambdaTerm k) {
     term->ty = LAMBDA_TERM_PERFORM;
     term->data.perform.action = action;
     term->data.perform.k = k;
+    action->nfree_vars = action->nfree_vars + k->nfree_vars;
 
     return term;
 }
@@ -3286,7 +3315,10 @@ of_lambda_term(
             goto done_with_lambda;
         }
 
-        const struct node lambda = alloc_node(graph, SYMBOL_LAMBDA);
+        const uint64_t symbol =
+            term->nfree_vars > 0 ? SYMBOL_LAMBDA : SYMBOL_LAMBDA_C;
+
+        const struct node lambda = alloc_node(graph, symbol);
         connect_ports(&lambda.ports[0], output_port);
         uint64_t **dup_ports = NULL;
         if (1 == tlambda->nusages) {
@@ -3427,6 +3459,8 @@ of_lambda_term(
                 COMMUTE_IDENTITY_LAMBDA_DUP(graph, g, f);                      \
             else if (SYMBOL_GC_LAMBDA == gsym)                                 \
                 COMMUTE_GC_LAMBDA_DUP(graph, g, f);                            \
+            else if (SYMBOL_LAMBDA_C == gsym)                                  \
+                COMMUTE_LAMBDA_C_DUP(graph, g, f);                             \
             else if (SYMBOL_CELL == gsym) COMMUTE_CELL_DUP(graph, g, f);       \
             else if (SYMBOL_UNARY_CALL == gsym)                                \
                 COMMUTE_UCALL_DUP(graph, g, f);                                \
@@ -3449,6 +3483,8 @@ of_lambda_term(
                 COMMUTE_IDENTITY_LAMBDA_DELIM(graph, g, f);                    \
             else if (SYMBOL_GC_LAMBDA == gsym)                                 \
                 COMMUTE_GC_LAMBDA_DELIM(graph, g, f);                          \
+            else if (SYMBOL_LAMBDA_C == gsym)                                  \
+                COMMUTE_LAMBDA_C_DELIM(graph, g, f);                           \
             else if (SYMBOL_CELL == gsym) COMMUTE_CELL_DELIM(graph, g, f);     \
             else if (SYMBOL_UNARY_CALL == gsym)                                \
                 COMMUTE_UCALL_DELIM(graph, g, f);                              \
@@ -3463,7 +3499,8 @@ of_lambda_term(
             else COMMUTE(graph, g, f); /* delimiters must be the second */     \
             break;                                                             \
         case SYMBOL_APPLICATOR:                                                \
-            if (SYMBOL_LAMBDA == gsym) BETA(graph, f, g);                      \
+            if (SYMBOL_LAMBDA == gsym || SYMBOL_LAMBDA_C == gsym)              \
+                BETA(graph, f, g);                                             \
             else if (SYMBOL_IDENTITY_LAMBDA == gsym)                           \
                 IDENTITY_BETA(graph, f, g);                                    \
             else if (SYMBOL_GC_LAMBDA == gsym) GC_BETA(graph, f, g);           \
@@ -3491,6 +3528,13 @@ of_lambda_term(
             if (SYMBOL_APPLICATOR == gsym) GC_BETA(graph, g, f);               \
             else if (IS_DELIMITER(gsym)) COMMUTE_GC_LAMBDA_DELIM(graph, f, g); \
             else if (IS_DUPLICATOR(gsym)) COMMUTE_GC_LAMBDA_DUP(graph, f, g);  \
+            else COMMUTE(graph, g, f); /* same as for `SYMBOL_LAMBDA` */       \
+            break;                                                             \
+        case SYMBOL_LAMBDA_C:                                                  \
+            if (SYMBOL_APPLICATOR == gsym) BETA(graph, g, f);                  \
+            else if (SYMBOL_FIX == gsym) DO_FIX(graph, g, f);                  \
+            else if (IS_DELIMITER(gsym)) COMMUTE_LAMBDA_C_DELIM(graph, f, g);  \
+            else if (IS_DUPLICATOR(gsym)) COMMUTE_LAMBDA_C_DUP(graph, f, g);   \
             else COMMUTE(graph, g, f); /* same as for `SYMBOL_LAMBDA` */       \
             break;                                                             \
         case SYMBOL_ERASER:                                                    \
@@ -3538,7 +3582,7 @@ of_lambda_term(
             else COMMUTE(graph, f, g);                                         \
             break;                                                             \
         case SYMBOL_FIX:                                                       \
-            if (SYMBOL_LAMBDA == gsym) DO_FIX(graph, f, g);                    \
+            if (IS_RELEVANT_LAMBDA(gsym)) DO_FIX(graph, f, g);                 \
             else COMMUTE(graph, f, g);                                         \
             break;                                                             \
         case SYMBOL_PERFORM:                                                   \
@@ -3591,13 +3635,17 @@ fire_rule(
 #define COMMUTE_DUP_DUP               commute_3_3
 #define COMMUTE_LAMBDA_DELIM          commute_lambda_delim
 #define COMMUTE_LAMBDA_DUP            commute_lambda_dup
-#define COMMUTE_IDENTITY_LAMBDA_DELIM commute_identity_lambda_delim
-#define COMMUTE_IDENTITY_LAMBDA_DUP   commute_identity_lambda_dup
+#define COMMUTE_IDENTITY_LAMBDA_DELIM commute_1_2
+#define COMMUTE_IDENTITY_LAMBDA_DUP   commute_1_3
 #define COMMUTE_GC_LAMBDA_DELIM       commute_gc_lambda_delim
 #define COMMUTE_GC_LAMBDA_DUP         commute_gc_lambda_dup
+#define COMMUTE_LAMBDA_C_DELIM        commute_lambda_c_delim
+#define COMMUTE_LAMBDA_C_DUP          commute_lambda_c_dup
 
     DISPATCH_ACTIVE_PAIR(graph, f, g);
 
+#undef COMMUTE_LAMBDA_C_DUP
+#undef COMMUTE_LAMBDA_C_DELIM
 #undef COMMUTE_GC_LAMBDA_DUP
 #undef COMMUTE_GC_LAMBDA_DELIM
 #undef COMMUTE_IDENTITY_LAMBDA_DUP
@@ -3675,18 +3723,22 @@ register_active_pair(
     COMMUTE(graph, g, f) // delimiters take precedence over lambdas
 #define COMMUTE_IDENTITY_LAMBDA_DELIM(graph, f, g) COMMUTE(graph, g, f)
 #define COMMUTE_GC_LAMBDA_DELIM(graph, f, g)       COMMUTE(graph, g, f)
+#define COMMUTE_LAMBDA_C_DELIM(graph, f, g)        COMMUTE(graph, g, f)
 
 #define COMMUTE_LAMBDA_DUP(graph, f, g)                                        \
     COMMUTE(graph, g, f) // lambdas must alwaies be the second
 #define COMMUTE_IDENTITY_LAMBDA_DUP(graph, f, g) COMMUTE(graph, g, f)
 #define COMMUTE_GC_LAMBDA_DUP(graph, f, g)       COMMUTE(graph, g, f)
+#define COMMUTE_LAMBDA_C_DUP(graph, f, g)        COMMUTE(graph, g, f)
 
     DISPATCH_ACTIVE_PAIR(graph, f, g);
 
+#undef COMMUTE_LAMBDA_C_DUP
 #undef COMMUTE_GC_LAMBDA_DUP
 #undef COMMUTE_IDENTITY_LAMBDA_DUP
 #undef COMMUTE_LAMBDA_DUP
 
+#undef COMMUTE_LAMBDA_C_DELIM
 #undef COMMUTE_GC_LAMBDA_DELIM
 #undef COMMUTE_IDENTITY_LAMBDA_DELIM
 #undef COMMUTE_LAMBDA_DELIM
