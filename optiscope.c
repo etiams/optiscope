@@ -343,7 +343,6 @@ STATIC_ASSERT(CHAR_BIT == 8, "The byte width must be 8 bits!");
 STATIC_ASSERT(sizeof(uint64_t *) == sizeof(uint64_t), "The machine word width must be 64 bits!");
 STATIC_ASSERT(sizeof(uint64_t (*)(uint64_t value)) <= sizeof(uint64_t), "Function handles must fit in `uint64_t`!");
 
-#define MIN_REGULAR_SYMBOL   UINT64_C(0)
 #define MAX_REGULAR_SYMBOL   UINT64_C(13)
 #define INDEX_RANGE          UINT64_C(9223372036854775801)
 #define MAX_DUPLICATOR_INDEX (MAX_REGULAR_SYMBOL + INDEX_RANGE)
@@ -410,28 +409,30 @@ COMPILER_CONST COMPILER_WARN_UNUSED_RESULT COMPILER_HOT //
 static uint8_t
 ports_count(const uint64_t symbol) {
     switch (symbol) {
+    case SYMBOL_ERASER:
+    case SYMBOL_CELL:
+    case SYMBOL_IDENTITY_LAMBDA: //
+        return 1;
     case SYMBOL_ROOT:
     case SYMBOL_S:
     case SYMBOL_UNARY_CALL:
     case SYMBOL_BINARY_CALL_AUX:
-    case SYMBOL_FIX: return 2;
+    case SYMBOL_FIX:
+    case SYMBOL_GC_LAMBDA:
+    delimiter:
+        return 2;
     case SYMBOL_APPLICATOR:
     case SYMBOL_LAMBDA:
     case SYMBOL_BINARY_CALL:
-    case SYMBOL_PERFORM: return 3;
-    case SYMBOL_ERASER:
-    case SYMBOL_CELL:
-    case SYMBOL_IDENTITY_LAMBDA: return 1;
-    case SYMBOL_GC_LAMBDA: return 2;
-    case SYMBOL_IF_THEN_ELSE: return 4;
+    case SYMBOL_PERFORM:
+    duplicator:
+        return 3;
+    case SYMBOL_IF_THEN_ELSE: //
+        return 4;
     default:
         if (symbol <= MAX_DUPLICATOR_INDEX) goto duplicator;
         else if (symbol <= MAX_DELIMITER_INDEX) goto delimiter;
         else COMPILER_UNREACHABLE();
-    duplicator:
-        return 3;
-    delimiter:
-        return 2;
     }
 }
 
@@ -477,30 +478,15 @@ static int64_t
 symbol_index(const uint64_t symbol) {
     STATIC_ASSERT(INDEX_RANGE <= (uint64_t)INT64_MAX, "Indices must fit in `int64_t`!");
 
-    switch (symbol) {
-    case SYMBOL_ROOT:
-    case SYMBOL_APPLICATOR:
-    case SYMBOL_LAMBDA:
-    case SYMBOL_ERASER:
-    case SYMBOL_S:
-    case SYMBOL_CELL:
-    case SYMBOL_UNARY_CALL:
-    case SYMBOL_BINARY_CALL:
-    case SYMBOL_BINARY_CALL_AUX:
-    case SYMBOL_IF_THEN_ELSE:
-    case SYMBOL_FIX:
-    case SYMBOL_PERFORM:
-    case SYMBOL_IDENTITY_LAMBDA:
-    case SYMBOL_GC_LAMBDA: return -1;
-    default:
-        if (symbol <= MAX_DUPLICATOR_INDEX) goto duplicator;
-        else if (symbol <= MAX_DELIMITER_INDEX) goto delimiter;
-        else COMPILER_UNREACHABLE();
-    duplicator:
+    if (symbol <= MAX_REGULAR_SYMBOL) { return -1; }
+
+    if (symbol <= MAX_DUPLICATOR_INDEX) {
         return (int64_t)(symbol - MAX_REGULAR_SYMBOL - 1);
-    delimiter:
-        return (int64_t)(symbol - MAX_DUPLICATOR_INDEX - 1);
     }
+
+    XASSERT(IS_DELIMITER(symbol));
+
+    return (int64_t)(symbol - MAX_DUPLICATOR_INDEX - 1);
 }
 
 COMPILER_CONST COMPILER_WARN_UNUSED_RESULT COMPILER_HOT //
@@ -549,15 +535,13 @@ print_symbol(const uint64_t symbol) {
 COMPILER_WARN_UNUSED_RESULT COMPILER_HOT //
 inline static uint64_t
 bump_index(const uint64_t symbol) {
+    XASSERT(symbol > MAX_REGULAR_SYMBOL);
+
     if (MAX_DELIMITER_INDEX == symbol || MAX_DUPLICATOR_INDEX == symbol) {
         panic("Maximum index of %" PRIu64 " is reached!", INDEX_RANGE);
-    } else if (symbol > MAX_REGULAR_SYMBOL) {
-        return symbol + 1;
-    } else {
-        panic(
-            "The symbol `%s` has no index to bump!", //
-            print_symbol(symbol));
     }
+
+    return symbol + 1;
 }
 
 #define PHASE_REDUCE_WEAKLY UINT64_C(0)
@@ -1305,22 +1289,17 @@ alloc_node_from(
             ports[2] = prototype->ports[2], ports[3] = prototype->ports[3];
         }
         goto set_ports_1;
-    case SYMBOL_IF_THEN_ELSE:
-        ports = ALLOC_POOL_OBJECT(if_then_else_pool);
-        goto set_ports_3;
-    case SYMBOL_FIX: //
-        ports = ALLOC_POOL_OBJECT(fix_pool);
-        goto set_ports_1;
-    case SYMBOL_PERFORM:
-        ports = ALLOC_POOL_OBJECT(perform_pool);
-        goto set_ports_2;
-    case SYMBOL_IDENTITY_LAMBDA:
-        ports = ALLOC_POOL_OBJECT(identity_lambda_pool);
-        goto set_ports_0;
-    case SYMBOL_GC_LAMBDA:
-        ports = ALLOC_POOL_OBJECT(gc_lambda_pool);
-        goto set_ports_1;
         // clang-format off
+    case SYMBOL_IF_THEN_ELSE:
+        ports = ALLOC_POOL_OBJECT(if_then_else_pool); goto set_ports_3;
+    case SYMBOL_FIX:
+        ports = ALLOC_POOL_OBJECT(fix_pool); goto set_ports_1;
+    case SYMBOL_PERFORM:
+        ports = ALLOC_POOL_OBJECT(perform_pool); goto set_ports_2;
+    case SYMBOL_IDENTITY_LAMBDA:
+        ports = ALLOC_POOL_OBJECT(identity_lambda_pool); goto set_ports_0;
+    case SYMBOL_GC_LAMBDA:
+        ports = ALLOC_POOL_OBJECT(gc_lambda_pool); goto set_ports_1;
     duplicator:
         ports = ALLOC_POOL_OBJECT(duplicator_pool); goto set_ports_2;
     delimiter:
@@ -3042,6 +3021,7 @@ prelambda(void) {
     struct lambda_term *const term = xmalloc(sizeof *term);
     term->ty = LAMBDA_TERM_LAMBDA;
     term->data.lambda = xcalloc(1, sizeof *term->data.lambda);
+    // All the data fields are zeroed out.
 
     return term;
 }
