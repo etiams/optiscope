@@ -522,8 +522,8 @@ Description: Recursively computes the 30th Fibonacci number using native cells &
 
 ```
 Benchmark 1: ./fibonacci-of-30
-  Time (mean ± σ):      6.118 s ±  0.016 s    [User: 5.942 s, System: 0.172 s]
-  Range (min … max):    6.101 s …  6.137 s    5 runs
+  Time (mean ± σ):      5.900 s ±  0.028 s    [User: 5.722 s, System: 0.178 s]
+  Range (min … max):    5.865 s …  5.924 s    5 runs
 ```
 
 <details>
@@ -547,21 +547,21 @@ Description: Recursively computes the 20th Fibonacci number using Church numeral
 
 ```
 Benchmark 1: ./church-fibonacci-of-20
-  Time (mean ± σ):     25.578 s ±  0.192 s    [User: 25.532 s, System: 0.043 s]
-  Range (min … max):   25.340 s … 25.839 s    5 runs
+  Time (mean ± σ):     24.980 s ±  0.142 s    [User: 24.938 s, System: 0.041 s]
+  Range (min … max):   24.748 s … 25.132 s    5 runs
 ```
 
 <details>
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 19678250
-Commutation interactions: 2053499914
-Beta interactions: 521847
+Annihilation interactions: 21256594
+Commutation interactions: 2240917128
+Beta interactions: 521833
 Native function calls: 0
 If-then-elses: 0
 Fixpoints: 0
-Total interactions: 2073700011
+Total interactions: 2262695555
 ```
 
 </details>
@@ -572,21 +572,21 @@ Description: Reverses the Church-encoded list of 5000 cells & then sums all the 
 
 ```
 Benchmark 1: ./church-list-reverse-and-sum
-  Time (mean ± σ):      5.340 s ±  0.013 s    [User: 5.261 s, System: 0.073 s]
-  Range (min … max):    5.322 s …  5.354 s    5 runs
+  Time (mean ± σ):      4.687 s ±  0.017 s    [User: 4.613 s, System: 0.074 s]
+  Range (min … max):    4.671 s …  4.714 s    5 runs
 ```
 
 <details>
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 25184998
-Commutation interactions: 275430055
-Beta interactions: 50006
+Annihilation interactions: 25179997
+Commutation interactions: 275405053
+Beta interactions: 45004
 Native function calls: 10000
 If-then-elses: 0
 Fixpoints: 0
-Total interactions: 300675059
+Total interactions: 300640054
 ```
 
 </details>
@@ -597,21 +597,21 @@ Description: Performes an insertion sort on a Scott-encoded list of 150 cells, t
 
 ```
 Benchmark 1: ./scott-insertion-sort
-  Time (mean ± σ):      8.478 s ±  0.094 s    [User: 8.348 s, System: 0.125 s]
-  Range (min … max):    8.389 s …  8.583 s    5 runs
+  Time (mean ± σ):      6.548 s ±  0.072 s    [User: 6.443 s, System: 0.104 s]
+  Range (min … max):    6.474 s …  6.634 s    5 runs
 ```
 
 <details>
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 69548219
-Commutation interactions: 445493102
-Beta interactions: 47111
+Annihilation interactions: 65014743
+Commutation interactions: 371405657
+Beta interactions: 46958
 Native function calls: 22650
 If-then-elses: 11175
 Fixpoints: 452
-Total interactions: 515122709
+Total interactions: 436501635
 ```
 
 </details>
@@ -622,21 +622,21 @@ Description: Performes an (inefficient) quicksort on a Scott-encoded list of 100
 
 ```
 Benchmark 1: ./scott-quicksort
-  Time (mean ± σ):     32.287 s ±  0.138 s    [User: 32.218 s, System: 0.049 s]
-  Range (min … max):   32.058 s … 32.422 s    5 runs
+  Time (mean ± σ):     27.591 s ±  0.115 s    [User: 27.545 s, System: 0.045 s]
+  Range (min … max):   27.491 s … 27.731 s    5 runs
 ```
 
 <details>
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 110264556
-Commutation interactions: 1194740481
-Beta interactions: 61917
+Annihilation interactions: 107406460
+Commutation interactions: 1080104020
+Beta interactions: 61814
 Native function calls: 20000
 If-then-elses: 9900
 Fixpoints: 406
-Total interactions: 1305097260
+Total interactions: 1187602600
 ```
 
 </details>
@@ -647,21 +647,21 @@ Description: Multiplies by 2 all the cells in a Scott-encoded binary tree of siz
 
 ```
 Benchmark 1: ./scott-tree-map-and-sum
-  Time (mean ± σ):      3.660 s ±  0.011 s    [User: 3.610 s, System: 0.046 s]
-  Range (min … max):    3.648 s …  3.676 s    5 runs
+  Time (mean ± σ):      3.733 s ±  0.021 s    [User: 3.673 s, System: 0.059 s]
+  Range (min … max):    3.703 s …  3.758 s    5 runs
 ```
 
 <details>
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 37191257
-Commutation interactions: 203811681
-Beta interactions: 1179740
+Annihilation interactions: 40992285
+Commutation interactions: 234842274
+Beta interactions: 1048667
 Native function calls: 262142
 If-then-elses: 0
 Fixpoints: 66
-Total interactions: 242444886
+Total interactions: 277145434
 ```
 
 </details>
@@ -680,20 +680,20 @@ Benchmark 1: ./owl-explosion
 <summary>Interactions count</summary>
 
 ```
-Annihilation interactions: 24990000
-Commutation interactions: 124969999
-Beta interactions: 9999
+Annihilation interactions: 24985002
+Commutation interactions: 124945006
+Beta interactions: 9998
 Native function calls: 0
 If-then-elses: 0
 Fixpoints: 0
-Total interactions: 149969998
+Total interactions: 149940006
 ```
 
 </details>
 
 ## Discussion
 
-_Optimal XOR efficient?_ I made a [fairly non-trivial effort] at optimizing the implementation, yet, the presented benchmarks are many times slower than those in [`benchmarks-haskell/`] & [`benchmarks-ocaml/`]; for instance, whereas it takes some 7 seconds to sort a Scott-encoded list of onely 150 elements in Optiscope, the Haskell & OCaml explicit substitution machines have no problem at sorting lists of 1 million elements. When I asked Optiscope to sort a list of 1000 elements, it simply hanged my computer.
+_Optimal XOR efficient?_ I made a [fairly non-trivial effort] at optimizing the implementation, yet, the presented benchmarks are many times slower than those in [`benchmarks-haskell/`] & [`benchmarks-ocaml/`]; for instance, whereas it takes some 6.5 seconds to sort a Scott-encoded list of onely 150 elements in Optiscope, the Haskell & OCaml explicit substitution machines have no problem at sorting lists of 1 million elements. When I asked Optiscope to sort a list of 1000 elements, it simply hanged my computer.
 
 [fairly non-trivial effort]: #implementation-details
 [`benchmarks-haskell/`]: benchmarks-haskell/

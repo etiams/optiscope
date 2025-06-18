@@ -2917,12 +2917,13 @@ struct apply_data {
 
 struct lambda_data {
     struct lambda_term *body;
-    uint64_t binder_usages; // the number of times the lambda body refers to its
-                            // binder
-    uint64_t **dup_ports;   // the pointer to the next duplicator tree
-                            // port; dynamically assigned
-    uint64_t lvl;           // the de Bruijn level; dynamically assigned
-    bool is_identity;
+    uint64_t nusages; // the number of times the lambda body refers to
+                      // its binder
+    struct lambda_term
+        *usage; // the pointer to one arbitrary usage of the lambda binder
+    uint64_t **dup_ports; // the pointer to the next duplicator tree
+                          // port; dynamically assigned
+    uint64_t lvl;         // the de Bruijn level; dynamically assigned
 };
 
 struct unary_call_data {
@@ -2950,8 +2951,8 @@ struct perform_data {
 
 union lambda_term_data {
     struct apply_data apply;
-    struct lambda_data lambda;
-    struct lambda_data *var; // the pointer to the binding lambda
+    struct lambda_data *lambda;
+    struct lambda_data **var;
     uint64_t cell;
     struct unary_call_data u_call;
     struct binary_call_data b_call;
@@ -2981,11 +2982,7 @@ extern LambdaTerm
 prelambda(void) {
     struct lambda_term *const term = xmalloc(sizeof *term);
     term->ty = LAMBDA_TERM_LAMBDA;
-    term->data.lambda.body = NULL;
-    term->data.lambda.binder_usages = 0;
-    term->data.lambda.dup_ports = NULL;
-    term->data.lambda.lvl = 0;
-    term->data.lambda.is_identity = false;
+    term->data.lambda = xcalloc(1, sizeof *term->data.lambda);
 
     return term;
 }
@@ -2996,10 +2993,7 @@ link_lambda_body(
     assert(binder), assert(body);
     assert(LAMBDA_TERM_LAMBDA == binder->ty);
 
-    struct lambda_data *const lambda = &binder->data.lambda;
-    lambda->is_identity =
-        LAMBDA_TERM_VAR == body->ty && lambda == body->data.var;
-    lambda->body = body;
+    binder->data.lambda->body = body;
 
     return binder;
 }
@@ -3013,7 +3007,8 @@ var(const restrict LambdaTerm binder) {
     term->ty = LAMBDA_TERM_VAR;
     term->data.var = &binder->data.lambda;
 
-    binder->data.lambda.binder_usages++;
+    binder->data.lambda->nusages++;
+    binder->data.lambda->usage = term;
 
     return term;
 }
@@ -3101,10 +3096,10 @@ perform(const restrict LambdaTerm action, const restrict LambdaTerm k) {
 // Conversion from a lambda term
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-#define BUILDER_ATTRS                                                          \
+#define CONTROL_BUILDER_ATTRS                                                  \
     COMPILER_RETURNS_NONNULL COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1, 2)
 
-BUILDER_ATTRS
+CONTROL_BUILDER_ATTRS
 static uint64_t *
 build_delimiter_sequence(
     struct context *const restrict graph,
@@ -3128,7 +3123,7 @@ build_delimiter_sequence(
     return result;
 }
 
-BUILDER_ATTRS
+CONTROL_BUILDER_ATTRS
 static uint64_t **
 build_duplicator_tree(
     struct context *const restrict graph,
@@ -3157,7 +3152,7 @@ build_duplicator_tree(
     return ports;
 }
 
-#undef BUILDER_ATTRS
+#undef CONTROL_BUILDER_ATTRS
 
 COMPILER_CONST COMPILER_WARN_UNUSED_RESULT //
 inline static uint64_t
@@ -3182,6 +3177,22 @@ of_lambda_term(
             *const rand = term->data.apply.rand;
         XASSERT(rator), XASSERT(rand);
 
+        const bool is_linear_lambda =
+            LAMBDA_TERM_LAMBDA == rator->ty && 1 == rator->data.lambda->nusages;
+        if (is_linear_lambda) {
+            // Optimization: in `((\x. body) rand)`, substitute `rand` into
+            // `body`, if `x` occurs only once in `body`.
+            struct lambda_data *const lambda = rator->data.lambda;
+            if (LAMBDA_TERM_VAR == rand->ty) {
+                (*rand->data.var)->usage = lambda->usage;
+            }
+            *lambda->usage = *rand;
+            of_lambda_term(graph, lambda->body, output_port, lvl);
+            free(rator), free(rand);
+            free(lambda);
+            break;
+        }
+
         const struct node applicator = alloc_node(graph, SYMBOL_APPLICATOR);
         connect_ports(&applicator.ports[1], output_port);
         of_lambda_term(graph, rator, &applicator.ports[0], lvl);
@@ -3190,53 +3201,54 @@ of_lambda_term(
         break;
     }
     case LAMBDA_TERM_LAMBDA: {
-        struct lambda_data *const tlambda = &term->data.lambda;
-        struct lambda_term *const body = term->data.lambda.body;
+        struct lambda_data *const tlambda = term->data.lambda;
+        struct lambda_term *const body = term->data.lambda->body;
         XASSERT(tlambda);
         XASSERT(body);
 
-        if (tlambda->is_identity) {
+        const bool is_identity_lambda =
+            LAMBDA_TERM_VAR == body->ty && tlambda == *body->data.var;
+        if (is_identity_lambda) {
             // clang-format off
             const struct node lambda = alloc_node(graph, SYMBOL_IDENTITY_LAMBDA);
             // clang-format on
             connect_ports(&lambda.ports[0], output_port);
             free(body);
-            break;
+            goto done_with_lambda;
         }
 
-        const uint64_t nusages = tlambda->binder_usages;
-
-        if (0 == nusages) {
+        if (0 == tlambda->nusages) {
             // This is lambda that "garbage-collects" its argument.
             const struct node lambda = alloc_node(graph, SYMBOL_GC_LAMBDA);
             of_lambda_term(graph, body, &lambda.ports[1], lvl + 1);
             connect_ports(&lambda.ports[0], output_port);
-            break;
+            goto done_with_lambda;
         }
 
         const struct node lambda = alloc_node(graph, SYMBOL_LAMBDA);
         connect_ports(&lambda.ports[0], output_port);
         uint64_t **dup_ports = NULL;
-        if (1 == nusages) {
+        if (1 == tlambda->nusages) {
             // This is a linear non-self-referential lambda.
             dup_ports = xmalloc(sizeof dup_ports[0] * 1);
             dup_ports[0] = &lambda.ports[1];
         } else {
             // This is a non-linear lambda that needs a duplicator tree.
             dup_ports = build_duplicator_tree(
-                graph, &lambda.ports[1], nusages /* >= 2 */);
+                graph, &lambda.ports[1], tlambda->nusages /* >= 2 */);
         }
         tlambda->dup_ports = dup_ports;
         tlambda->lvl = lvl;
         of_lambda_term(graph, body, &lambda.ports[2], lvl + 1);
-
         free(dup_ports);
 
+    done_with_lambda:
+        free(tlambda);
         break;
     }
     case LAMBDA_TERM_VAR: {
-        struct lambda_data *const lambda = term->data.var;
-        XASSERT(lambda);
+        struct lambda_data *const lambda = *term->data.var;
+        XASSERT(lambda), XASSERT(lambda->dup_ports);
 
         const uint64_t idx = de_bruijn_level_to_index(lvl, lambda->lvl);
         if (0 == idx) {
