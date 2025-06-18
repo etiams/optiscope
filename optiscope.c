@@ -1504,6 +1504,7 @@ graphviz_edge_tailport(
     switch (node.ports[-1]) {
     case SYMBOL_ROOT:
     case SYMBOL_S:
+    case SYMBOL_GC_LAMBDA:
         switch (i) {
         case 0: return "n";
         case 1: return "s";
