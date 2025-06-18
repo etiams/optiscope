@@ -1811,7 +1811,7 @@ collect_garbage(
             switch (i) {
             case 0: FOLLOW(f.ports[1]), FOLLOW(f.ports[2]), COLLECT(f); break;
             case 1: FOLLOW(f.ports[0]), FOLLOW(f.ports[2]), COLLECT(f); break;
-            case 2: ERASE(&f.ports[2]); break;
+            case 2: FOLLOW(f.ports[0]), FOLLOW(f.ports[1]), COLLECT(f); break;
             default: COMPILER_UNREACHABLE();
             }
             break;
