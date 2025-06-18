@@ -3154,6 +3154,29 @@ build_duplicator_tree(
 
 #undef CONTROL_BUILDER_ATTRS
 
+#define TERM_PREDICATE_ATTRS                                                   \
+    COMPILER_PURE COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1)
+
+TERM_PREDICATE_ATTRS
+inline static bool
+is_identity_lambda(const struct lambda_data *const restrict lambda) {
+    assert(lambda);
+
+    return LAMBDA_TERM_VAR == lambda->body->ty &&
+           lambda == *lambda->body->data.var;
+}
+
+// Perhaps for future use.
+TERM_PREDICATE_ATTRS
+inline static bool
+is_atomic(const struct lambda_term *const restrict term) {
+    assert(term);
+
+    return LAMBDA_TERM_VAR == term->ty || LAMBDA_TERM_CELL == term->ty;
+}
+
+#undef TERM_PREDICATE_ATTRS
+
 COMPILER_CONST COMPILER_WARN_UNUSED_RESULT //
 inline static uint64_t
 de_bruijn_level_to_index(const uint64_t lvl, const uint64_t var) {
@@ -3181,7 +3204,7 @@ of_lambda_term(
             LAMBDA_TERM_LAMBDA == rator->ty && 1 == rator->data.lambda->nusages;
         if (is_linear_lambda) {
             // Optimization: in `((\x. body) rand)`, substitute `rand` into
-            // `body`, if `x` occurs only once in `body`.
+            // `body`, if `x` occurs onely once in `body`.
             struct lambda_data *const lambda = rator->data.lambda;
             if (LAMBDA_TERM_VAR == rand->ty) {
                 (*rand->data.var)->usage = lambda->usage;
@@ -3206,9 +3229,7 @@ of_lambda_term(
         XASSERT(tlambda);
         XASSERT(body);
 
-        const bool is_identity_lambda =
-            LAMBDA_TERM_VAR == body->ty && tlambda == *body->data.var;
-        if (is_identity_lambda) {
+        if (is_identity_lambda(tlambda)) {
             // clang-format off
             const struct node lambda = alloc_node(graph, SYMBOL_IDENTITY_LAMBDA);
             // clang-format on
