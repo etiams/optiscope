@@ -503,6 +503,12 @@ symbol_index(const uint64_t symbol) {
     }
 }
 
+COMPILER_CONST COMPILER_WARN_UNUSED_RESULT COMPILER_HOT //
+inline static bool
+is_atomic_symbol(const uint64_t symbol) {
+    return SYMBOL_CELL == symbol || SYMBOL_IDENTITY_LAMBDA == symbol;
+}
+
 #define MAX_SSYMBOL_SIZE 64
 
 COMPILER_CONST COMPILER_WARN_UNUSED_RESULT COMPILER_RETURNS_NONNULL //
@@ -1138,6 +1144,8 @@ struct context {
 #endif
 
     struct multifocus *gc_focus, *gc_history;
+
+    struct multifocus *unsharing_focus;
 };
 
 COMPILER_NONNULL(1) COMPILER_COLD //
@@ -1173,6 +1181,8 @@ static struct context *alloc_context(void) {
     graph->gc_focus = xcalloc(1, sizeof *graph->gc_focus);
     graph->gc_history = xcalloc(1, sizeof *graph->gc_history);
 
+    graph->unsharing_focus = xcalloc(1, sizeof *graph->unsharing_focus);
+
     return graph;
 }
 
@@ -1192,6 +1202,7 @@ free_context(struct context *const restrict graph) {
     CONTEXT_MULTIFOCUSES
     X(gc_focus)
     X(gc_history)
+    X(unsharing_focus)
 
 #undef X
 
@@ -1764,7 +1775,7 @@ collect_garbage(
 
     assert(graph);
     assert(port);
-    XASSERT(graph->gc_focus);
+    XASSERT(graph->gc_focus), XASSERT(graph->gc_history);
 
     // clang-format off
 #define FOLLOW(port) \
@@ -1892,6 +1903,51 @@ collect_garbage(
     CONSUME_MULTIFOCUS (graph->gc_history, node) {
         free_node(node); //
     }
+}
+
+// Eliminates a (higher-order) sharing structure, thus reducing the graph size.
+COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1, 2) //
+static bool
+try_unshare(
+    struct context *const restrict graph,
+    uint64_t *const restrict port,
+    const struct node atom) {
+    debug("%s(%p, %s)", __func__, (void *)port, print_node(atom));
+
+    assert(graph);
+    assert(port);
+    XASSERT(atom.ports);
+    XASSERT(graph->unsharing_focus);
+
+    if (!is_atomic_symbol(atom.ports[-1])) { return false; }
+
+#define FOLLOW(port)                                                           \
+    focus_on(graph->unsharing_focus, FAKE_NODE(DECODE_ADDRESS((port))))
+
+#define FAKE_NODE(port) ((struct node){(port)})
+
+    focus_on(graph->unsharing_focus, FAKE_NODE(port));
+
+    CONSUME_MULTIFOCUS (graph->unsharing_focus, node) {
+        XASSERT(node.ports);
+
+        uint64_t *const p = node.ports;
+        const struct node f = node_of_port(p);
+
+        if (IS_DUPLICATOR(f.ports[-1]) && IS_PRINCIPAL_PORT(*p)) {
+            FOLLOW(p[1]), FOLLOW(p[2]);
+            free_node(f);
+        } else {
+            const struct node atomx =
+                alloc_node_from(graph, atom.ports[-1], &atom);
+            connect_ports(&atomx.ports[0], p);
+        }
+    }
+
+#undef FAKE_NODE
+#undef FOLLOW
+
+    return true;
 }
 
 // The core interaction rules
@@ -2212,13 +2268,17 @@ RULE_DEFINITION(beta, graph, f, g) {
 #endif
 
     const struct node lhs = alloc_node(graph, SYMBOL_DELIMITER(UINT64_C(0)));
-    const struct node rhs = alloc_node(graph, SYMBOL_DELIMITER(UINT64_C(0)));
-
     connect_ports(&lhs.ports[0], DECODE_ADDRESS(f.ports[1]));
-    connect_ports(&rhs.ports[0], DECODE_ADDRESS(f.ports[2]));
-
     connect_ports(&lhs.ports[1], DECODE_ADDRESS(g.ports[2]));
-    connect_ports(&rhs.ports[1], DECODE_ADDRESS(g.ports[1]));
+
+    uint64_t *const binder_port = DECODE_ADDRESS(g.ports[1]), //
+        *const rand_port = DECODE_ADDRESS(f.ports[2]);
+    if (!try_unshare(graph, binder_port, node_of_port(rand_port))) {
+        const struct node rhs =
+            alloc_node(graph, SYMBOL_DELIMITER(UINT64_C(0)));
+        connect_ports(&rhs.ports[0], rand_port);
+        connect_ports(&rhs.ports[1], binder_port);
+    }
 
 #ifndef NDEBUG
     // There should be no possibility that the lambda is connected to an eraser;
@@ -2262,7 +2322,6 @@ RULE_DEFINITION(gc_beta, graph, f, g) {
 #endif
 
     const struct node lhs = alloc_node(graph, SYMBOL_DELIMITER(UINT64_C(0)));
-
     connect_ports(&lhs.ports[0], DECODE_ADDRESS(f.ports[1]));
     connect_ports(&lhs.ports[1], DECODE_ADDRESS(g.ports[1]));
 
