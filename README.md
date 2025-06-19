@@ -54,7 +54,7 @@ G := (λh. ((λf. (f (f (λz. z))))
 
 which will cause duplication of the inner redex `((λf. ...) (λw. ...))`, thereby entailing duplication of work.
 
-On the other hand, if we follow the applicative order strategy, then four instances of the redex `(h (w (λy. y)))` will need to be processed independently, again entailing duplication of work:
+On the other hand, if we follow the applicative order strategy, then four instances of the redex `(h (w (λy. y)))` will need to be processed independently, againe entailing duplication of work:
 
 <details>
 <summary>Show the full reduction</summary>
@@ -193,7 +193,7 @@ For an evaluator to be optimal, it must satisfie the following properties:
 
 Optiscope operates in **five discrete phases**: (1) weak reduction, (2) full reduction, (3) unwinding, (4) scope removal, & (5) loop cutting. The first two phases performe interaction net reduction; the latter phases read back the reduced net into a net that can be directly interpreted as a lambda calculus expression. Weak reduction achieves true Lévy-optimality by reducing onely _needed_ redexes (i.e., neither duplicating work nor touching redexes whose result will be discarded); the latter phases are to be understood as "extensions" that are not formally Lévy-optimal. In particular, although full reduction is guaranteed to reach beta normal forms, it is allowed to fire redexes whose result will be eventually discarded by subsequent computation. This choice is made of practical concerns, since implementing full Lévy-optimal reduction is neither easy, nor necessary; all functional machines in practice are weak anywaies.
 
-Mathematically, our implementation follows the Lambdascope formalisme [^lambdascope], which is perhaps the simplest (among many others) proposal to optimality, involving onely six types of nodes & three rule schemes. As here we make no attempt at giving optimality a formal treatment, an interested reader is invited to read the paper for more details & ask any related questions in the issues.
+Mathematically, our implementation follows the Lambdascope formalisme [^lambdascope], which is perhaps the simplest (among many others) proposal to optimality, involving onely six types of nodes & three rule schemes. As here we make no attempt at giving optimality a formal treatment, an interested reader is invited to read the paper for more details & aske any related questions in the issues.
 
 ## Evaluation by interaction
 
@@ -243,7 +243,7 @@ $ ./command/example.sh lamping-example
 
 The whole term evaluates to the identity lambda, as expected.
 
-In Optiscope, it is possible to observe _all the interaction steps_ involved in computing the finall result. However, since there are so many interactions involved in this example, we will onely focus on the first ten & the last ten ones. In order to ask Optiscope to draw an SVG file after each interaction, insert the following lines into `optiscope.h`:
+In Optiscope, it is possible to observe _all the interaction steps_ involved in computing the finall result. However, since there are so many interactions involved in this example, we will onely focus on the first ten & the last ten ones. In order to aske Optiscope to draw an SVG file after each interaction, insert the following lines into `optiscope.h`:
 
 ```c
 #define OPTISCOPE_ENABLE_TRACING
@@ -374,7 +374,7 @@ Let us see how this example works step-by-step:
 
 From the optimality section, you remember that optimal reduction shares all explicit & virtual redexes -- if they are constructed "in the same way". This is the exact reason why we need to passe the `token` parameter to every side-effectfull function: we trick Optiscope to make it think that, given that the side-effecting redexes are constructed differently, it must repeatedly re-evaluate them each time it focuses on them; otherwise, it would just "cache" their results, once they are executed for the first time. Since the reduction strategy is fixed, it is safe to rely on Optiscope performing side effects in the exact order we wrote them.
 
-Finally, notice that `my_strcmp` & `is_palindrome` are both pure functions used as mere program subroutines. In fact, we use pure native functions quite extensively in [`tests.c`](tests.c), which allowed us to test Optiscope on a variety of classical algorithms, such as functional quicksort & the Ackermann function. Naturally, this opens another path for investigation: what if we delegate some CPU-bound computation to native functions & ask the optimal machine to efficiently share those computations?
+Finally, notice that `my_strcmp` & `is_palindrome` are both pure functions used as mere program subroutines. In fact, we use pure native functions quite extensively in [`tests.c`](tests.c), which allowed us to test Optiscope on a variety of classical algorithms, such as functional quicksort & the Ackermann function. Naturally, this opens another path for investigation: what if we delegate some CPU-bound computation to native functions & aske the optimal machine to efficiently share those computations?
 
 ## Rules for side effects
 
@@ -390,7 +390,7 @@ We write `comp/pure` for pure computations, i.e., those not conteyning `bind` or
  - If `action/impure` & `if_then/impure` & `if_else/impure`, then `if_then_else(action, if_then, if_else)/impure`.
  - If `comp/pure`, then `comp/impure`.
 
-The onely difference between Optiscope and Haskell-style monads is that, while monads are first-class citizens in Haskell, they merely manifest themselves as well-formednesse rules in Optiscope. While the Haskell approach allows for more flexibility & maintaines conceptual purity of I/O functions, it requires the I/O monad to be incarnated into the language & to be treated specially by the runtime system; on the other hand, the Optiscope approach onely requires carefull positioning of effectfull computation, which can be easily achieved through a superimposed type system that implements the rules above.
+The onely difference between Optiscope and Haskell-style monads is that, while monads are first-class citizens in Haskell, they merely manifest themselves as well-formednesse rules in Optiscope. While the Haskell approach allows for more flexibility & mainteyns conceptual purity of I/O functions, it requires the I/O monad to be incarnated into the language & to be treated specially by the runtime system; on the other hand, the Optiscope approach onely requires carefull positioning of effectfull computation, which can be easily achieved through a superimposed type system that implements the rules above.
 
 Which approach is better is a topic of further discussion. However, the point of Optiscope is to merely show that unrestricted, user-provided side effects are perfectly expressible within interaction nets & optimal reduction.
 
@@ -480,9 +480,9 @@ Let us break down this example step-by-step:
  1. The `fix_factorial_function` function merely computes the factorial of `n` using recursion & native cells.
  1. The `inner_factorial` function accepts an integer `n` & tells Optiscope to compute `fix_factorial_function` on this `n`. When the computation is complete, we extract the result with `extract_result` into a global variable.
  1. Next, the `scott_factorial_sum` function computes a _factorial sum_ of a Scott-encoded list. However, instead of directly computing the factorial, we call `inner_factorial`, thereby delegating the work to a lower-level optimal machine.
- 1. Finally, `optiscope_inside_optiscope` launches the algorithm on a Scott list `[1, 2, 3, 4, 5]`, eventually obtaining the result `cell[153]`, as evidenced in the tests.
+ 1. Finally, `optiscope_inside_optiscope` launches the algorithm on a Scott list `[1, 2, 3, 4, 5]`, eventually obteyning the result `cell[153]`, as evidenced in the tests.
 
-That is, inside user-provided functions we can essentially doe anything we want, including running Optiscope itself! Moreover, as the memory pools are global to the whole program, the high-level & low-level optimal machines **share the same memory regions** during execution. Whether this technique has practical applications is a topic of future research.
+That is, user-provided functions are given the right to performe all the variety of things, including running Optiscope itself! Moreover, as the memory pools are global to the whole program, the high-level & low-level optimal machines **share the same memory regions** during execution. Whether this technique has practical applications is a topic of future research.
 
 ## On performance
 
@@ -668,7 +668,7 @@ In addition to semantic bugs, there are various memory management issues that pl
 
 [`tests.c`]: tests.c
 
-In order to report either type of a bug, kindly open an issue in this repository. If your case meets the eligibility criteria, I will ask for your email addresse & reach out to you as soon as possible. In case of any ambiguity, I will use my best judgement.
+In order to report either type of a bug, kindly open an issue in this repository. If your case meets the eligibility criteria, I will aske for your email addresse & reach out to you as soon as possible. In case of any ambiguity, I will use my best judgement.
 
 Semantic bugs related to extra functionality like native function calls & if-then-else nodes are not eligible for bounty, as they exist outside the realm of the pure lambda calculus.
 

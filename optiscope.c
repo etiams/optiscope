@@ -1787,7 +1787,7 @@ collect_garbage(
 
 #define FAKE_NODE(port) ((struct node){(port)})
 
-    // This multifocus containes the ports _to be followed_, not necessarily
+    // This multifocus conteyns the ports _to be followed_, not necessarily
     // nodes' _principal_ ports!
     focus_on(graph->gc_focus, FAKE_NODE(port));
 
