@@ -632,6 +632,7 @@ Now, there are two possible avenues to mitigate the performance issue. The first
  - Despite that interaction nets allow for a _huge_ amount of parallelisme, Optiscope is an unpretentiously sequential reducer. We doe not plan to make it parallel, perhaps except for (unordered) full reduction.
  - `perform` calls can onely be executed during weak reduction, inasmuch as the later phases doe not guarantee the order of reduction. In case a `perform` call is detected after weak reduction is complete, a panic message will be emitted.
  - We doe not guarantee what will happen with ill-formed terms, such as when an if-then-else expression accepts a lambda as a condition. In general, we simply decide to commute such agents, but the overall result can be hard to predict.
+ - Optiscope cannot detect when two syntactically idential configurations occur at run-time; that is, the avoidance of redex duplication is relative to the initiall term, not to the computational pattern exhibited by the term.
  - On conventional problems, Optiscope is in fact many times slower than traditional implementations, wherefore it is more of an interesting experiment rather than a production-ready technology.
 
 ## Acknowledgements
