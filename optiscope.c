@@ -3223,10 +3223,7 @@ build_duplicator_tree(
 
 #undef CONTROL_BUILDER_ATTRS
 
-#define TERM_PREDICATE_ATTRS                                                   \
-    COMPILER_PURE COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1)
-
-TERM_PREDICATE_ATTRS
+COMPILER_PURE COMPILER_WARN_UNUSED_RESULT COMPILER_NONNULL(1) //
 inline static bool
 is_identity_lambda(const struct lambda_data *const restrict lambda) {
     assert(lambda);
@@ -3234,17 +3231,6 @@ is_identity_lambda(const struct lambda_data *const restrict lambda) {
     return LAMBDA_TERM_VAR == lambda->body->ty &&
            lambda == *lambda->body->data.var;
 }
-
-// Perhaps for future use.
-TERM_PREDICATE_ATTRS
-inline static bool
-is_atomic(const struct lambda_term *const restrict term) {
-    assert(term);
-
-    return LAMBDA_TERM_VAR == term->ty || LAMBDA_TERM_CELL == term->ty;
-}
-
-#undef TERM_PREDICATE_ATTRS
 
 COMPILER_CONST COMPILER_WARN_UNUSED_RESULT //
 inline static uint64_t
