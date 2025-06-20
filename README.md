@@ -176,7 +176,7 @@ _Optimal evaluation_ (in Lévy's sense [^levy-thesis] [^levy-optimal-reductions]
 In practice, this is how the complete reduction of Church numeral 2^2 looks like:
 
 <div align="center">
-  <a href="https://github.com/user-attachments/assets/fa0db1c8-0684-440a-88dc-82cb4304c476">
+  <a href="https://github.com/user-attachments/assets/f1e3ef9d-b94b-4885-bd84-cb1579f305dd">
     <img src="media/2-power-2-preview.png" width="400px" alt="Church 2^2 reduction" />
   </a>
 </div>
@@ -254,7 +254,7 @@ In Optiscope, it is possible to observe _all the interaction steps_ involved in 
 The visualization will then be as follows:
 
 <div align="center">
-  <a href="https://github.com/user-attachments/assets/768481fc-15f0-4a31-8759-c8bbb37afb95">
+  <a href="https://github.com/user-attachments/assets/145de417-06cc-4b8b-afcc-76ccc2ebc6ce">
     <img src="media/lamping-example-preview.png" width="680px" alt="Lamping example" />
   </a>
 </div>

@@ -1139,6 +1139,10 @@ struct context {
     struct multifocus *gc_focus, *gc_history;
 
     struct multifocus *unsharing_focus;
+
+#ifdef OPTISCOPE_ENABLE_GRAPHVIZ
+    struct node current_pair[2];
+#endif
 };
 
 COMPILER_NONNULL(1) COMPILER_COLD //
@@ -1175,6 +1179,10 @@ static struct context *alloc_context(void) {
     graph->gc_history = xcalloc(1, sizeof *graph->gc_history);
 
     graph->unsharing_focus = xcalloc(1, sizeof *graph->unsharing_focus);
+
+#ifdef OPTISCOPE_ENABLE_GRAPHVIZ
+    CLEAR_MEMORY(graph->current_pair);
+#endif
 
     return graph;
 }
@@ -1452,18 +1460,18 @@ graphviz_node_xlabel(const struct node node) {
 COMPILER_PURE COMPILER_WARN_UNUSED_RESULT COMPILER_RETURNS_NONNULL //
 static const char *
 graphviz_edge_label(
-    const struct node node, const uint8_t i, const bool is_reading_back) {
+    const struct node node, const uint8_t i, const uint64_t phase) {
     XASSERT(node.ports);
 
     static char buffer[16] = {0};
 
     switch (node.ports[-1]) {
     case SYMBOL_APPLICATOR:
-        if ((is_reading_back ? 0 : 1) == i) {
+        if ((phase >= PHASE_UNWIND ? 0 : 1) == i) {
             sprintf(buffer, "\\#%" PRIu8, i);
-        } else if ((is_reading_back ? 2 : 0) == i) {
+        } else if ((phase >= PHASE_UNWIND ? 2 : 0) == i) {
             sprintf(buffer, "rator (\\#%" PRIu8 ")", i);
-        } else if ((is_reading_back ? 1 : 2) == i) {
+        } else if ((phase >= PHASE_UNWIND ? 1 : 2) == i) {
             sprintf(buffer, "rand (\\#%" PRIu8 ")", i);
         } else {
             COMPILER_UNREACHABLE();
@@ -1487,13 +1495,13 @@ graphviz_edge_label(
 COMPILER_PURE COMPILER_WARN_UNUSED_RESULT //
 static uint8_t
 graphviz_edge_weight(
-    const struct node node, const uint8_t i, const bool is_reading_back) {
+    const struct node node, const uint8_t i, const uint64_t phase) {
     if (is_active(node) && 0 == i) { return 3; }
 
     switch (node.ports[-1]) {
     case SYMBOL_APPLICATOR:
-        if ((is_reading_back ? 2 : 0) == i) return 5; // rator
-        if ((is_reading_back ? 1 : 2) == i) return 5; // rand
+        if ((phase >= PHASE_UNWIND ? 2 : 0) == i) return 5; // rator
+        if ((phase >= PHASE_UNWIND ? 1 : 2) == i) return 5; // rand
         break;
     case SYMBOL_LAMBDA:
     case SYMBOL_LAMBDA_C:
@@ -1512,7 +1520,7 @@ graphviz_edge_weight(
 COMPILER_PURE COMPILER_WARN_UNUSED_RESULT COMPILER_RETURNS_NONNULL //
 static const char *
 graphviz_edge_tailport(
-    const struct node node, const uint8_t i, const bool is_reading_back) {
+    const struct node node, const uint8_t i, const uint64_t phase) {
     XASSERT(node.ports);
 
     switch (node.ports[-1]) {
@@ -1525,9 +1533,9 @@ graphviz_edge_tailport(
         default: COMPILER_UNREACHABLE();
         }
     case SYMBOL_APPLICATOR:
-        if ((is_reading_back ? 0 : 1) == i) return "n";
-        else if ((is_reading_back ? 2 : 0) == i) return "s";
-        else if ((is_reading_back ? 1 : 2) == i) return "e";
+        if ((phase >= PHASE_UNWIND ? 0 : 1) == i) return "n";
+        else if ((phase >= PHASE_UNWIND ? 2 : 0) == i) return "s";
+        else if ((phase >= PHASE_UNWIND ? 1 : 2) == i) return "e";
         else COMPILER_UNREACHABLE();
     case SYMBOL_LAMBDA:
     case SYMBOL_LAMBDA_C:
@@ -1608,10 +1616,21 @@ graphviz_is_active_edge(const struct node node, const uint8_t i) {
 }
 
 struct graphviz_context {
-    FILE *stream;
+    struct context *graph;
     struct node_list *history;
-    const bool is_reading_back;
+    FILE *stream;
 };
+
+COMPILER_NONNULL(1) //
+inline static bool
+graphviz_is_current_node(
+    struct graphviz_context *const restrict ctx, const struct node node) {
+    assert(ctx);
+    XASSERT(node.ports);
+
+    return ctx->graph->current_pair[0].ports == node.ports ||
+           ctx->graph->current_pair[1].ports == node.ports;
+}
 
 COMPILER_NONNULL(1) //
 static void
@@ -1621,6 +1640,7 @@ graphviz_draw_node(
     XASSERT(node.ports);
 
     const bool is_active = graphviz_is_active_node(node),
+               is_current = graphviz_is_current_node(ctx, node),
                is_root = SYMBOL_ROOT == node.ports[-1];
 
     fprintf(
@@ -1628,13 +1648,14 @@ graphviz_draw_node(
         // clang-format off
         GRAPHVIZ_INDENT "n%p"
         " [label=\"%s\""
-        ", xlabel=<<FONT FACE=\"Courier\" COLOR=\"darkorange2\" POINT-SIZE=\"8\">%s</FONT>>"
+        ", xlabel=<<FONT FACE=\"Courier\" COLOR=\"blue\" POINT-SIZE=\"8\">%s</FONT>>"
         "%s%s%s];\n",
         // clang-format on
         (void *)node.ports,
         print_symbol(node.ports[-1]),
         graphviz_node_xlabel(node),
-        (is_active ? ", color=darkgreen" : ""),
+        (is_current ? ", color=darkred"
+                    : (is_active ? ", color=darkgreen" : "")),
         (is_active ? ", penwidth=2.3" : ""),
         (is_root ? ", style=filled" : ""));
 }
@@ -1661,10 +1682,12 @@ graphviz_draw_edge(
         // clang-format on
         (void *)source.ports,
         (void *)target.ports,
-        graphviz_edge_label(source, i, ctx->is_reading_back),
-        graphviz_edge_weight(source, i, ctx->is_reading_back),
-        graphviz_edge_tailport(source, i, ctx->is_reading_back),
-        (is_active ? ", color=darkgreen" : ""),
+        graphviz_edge_label(source, i, ctx->graph->phase),
+        graphviz_edge_weight(source, i, ctx->graph->phase),
+        graphviz_edge_tailport(source, i, ctx->graph->phase),
+        (is_active && graphviz_is_current_node(ctx, source)
+             ? ", color=darkred"
+             : (is_active ? ", color=darkgreen" : "")),
         (is_active ? ", penwidth=1.5" : ""),
         (IS_PRINCIPAL_PORT(*target_port) ? ", arrowhead=dot" : ""),
         (0 == i ? ", style=dashed" : ""));
@@ -1693,7 +1716,7 @@ go_graphviz(
 COMPILER_NONNULL(1, 2) //
 static void
 graphviz(
-    const struct context *const restrict graph,
+    struct context *const restrict graph, //
     const char filename[const restrict]) {
     debug("%s(\"%s\")", __func__, filename);
 
@@ -1712,12 +1735,11 @@ graphviz(
         "edge [fontname=\"bold helvetica\""
         ", fontsize=11"
         ", fontcolor=darkblue];\n");
-    struct graphviz_context ctx = {
-        .stream = fp,
-        .history = NULL,
-        .is_reading_back = graph->phase >= PHASE_UNWIND,
-    };
+    // clang-format off
+    struct graphviz_context ctx = {.graph = graph, .history = NULL, .stream = fp};
+    // clang-format on
     go_graphviz(&ctx, graph->root, 0);
+    CLEAR_MEMORY(ctx.graph->current_pair);
     ctx.history = unvisit_all(ctx.history);
     fprintf(fp, "}\n");
 
@@ -1736,7 +1758,7 @@ graphviz(
 
 COMPILER_NONNULL(1) //
 static void
-wait_for_user(const struct context *const restrict graph) {
+wait_for_user(struct context *const restrict graph) {
     assert(graph);
 
 #ifdef OPTISCOPE_ENABLE_GRAPHVIZ
@@ -2114,11 +2136,13 @@ COMPILER_NONNULL(1, 2) //
 static void
 debug_interaction(
     const char caller[const restrict],
-    const struct context *const restrict graph,
+    struct context *const restrict graph,
     const struct node f,
     const struct node g) {
     assert(caller);
     assert(graph);
+
+    graph->current_pair[0] = f, graph->current_pair[1] = g;
 
     char f_ssymbol[MAX_SSYMBOL_SIZE] = {0}, g_ssymbol[MAX_SSYMBOL_SIZE] = {0};
     strcpy(f_ssymbol, print_symbol(f.ports[-1])),
